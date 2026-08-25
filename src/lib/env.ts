@@ -68,7 +68,7 @@ export function getEnv(): ServerEnv {
 }
 
 export function requireGeminiApiKey(): string {
-  const key = getEnv().GOOGLE_GENERATIVE_AI_API_KEY;
+  const key = process.env.GOOGLE_GENERATIVE_AI_API_KEY?.trim();
   if (!key) {
     throw new Error(
       "GOOGLE_GENERATIVE_AI_API_KEY is required for AI features but is not configured"
@@ -82,12 +82,13 @@ export function requireStorageConfig(): {
   serviceKey: string;
   bucket: string;
 } {
-  const { SUPABASE_STORAGE_URL: url, SUPABASE_SERVICE_KEY: serviceKey } =
-    getEnv();
+  const url = process.env.SUPABASE_STORAGE_URL?.trim();
+  const serviceKey = process.env.SUPABASE_SERVICE_KEY?.trim();
+  const bucket = getEnv().STORAGE_BUCKET;
   if (!url || !serviceKey) {
     throw new Error(
       "SUPABASE_STORAGE_URL and SUPABASE_SERVICE_KEY are required for storage features but are not configured"
     );
   }
-  return { url, serviceKey, bucket: getEnv().STORAGE_BUCKET };
+  return { url, serviceKey, bucket };
 }
