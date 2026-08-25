@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+@theme {
+  /* Brand & accent */
+  --color-primary: #fa520f;
+  --color-primary-deep: #cc3a05;
+  --color-on-primary: #ffffff;
+
+  /* Sunset spectrum */
+  --color-sunshine-300: #ffd06a;
+  --color-sunshine-500: #ffb83e;
+  --color-sunshine-700: #ffa110;
+  --color-sunshine-800: #ff8105;
+  --color-sunshine-900: #ff8a00;
+  --color-yellow-saturated: #ffd900;
+
+  /* Warm cream surfaces */
+  --color-cream: #fff8e0;
+  --color-cream-light: #fffaeb;
+  --color-cream-deeper: #fff0c2;
+  --color-beige-deep: #e6d5a8;
+
+  /* Ink scale */
+  --color-ink: #1f1f1f;
+  --color-ink-tint: #3d3d3d;
+  --color-charcoal: #2c2c2c;
+  --color-slate-text: #4a4a4a;
+  --color-steel: #6a6a6a;
+  --color-stone: #8a8a8a;
+  --color-muted: #a8a8a8;
+
+  /* Hairlines */
+  --color-hairline: #e5e5e5;
+  --color-hairline-soft: #ededed;
+  --color-hairline-strong: #c7c7c7;
+
+  /* Surfaces */
+  --color-canvas: #ffffff;
+  --color-surface: #fafafa;
+  --color-surface-code: #1c1c1e;
+  --color-on-dark-muted: #a8a8a8;
+
+  /* Typography */
+  --font-display: "PP Editorial Old", "Times New Roman", Georgia, serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), "SF Mono", Menlo, Consolas, monospace;
+
+  /* Radii — sober editorial geometry */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-xxl: 20px;
+
+  /* Shadows */
+  --shadow-card: rgba(0, 0, 0, 0.04) 0px 4px 12px 0px;
+  --shadow-hover: rgba(0, 0, 0, 0.04) 0px 1px 2px 0px;
+  --shadow-modal: rgba(0, 0, 0, 0.12) 0px 16px 48px -8px;
+}
+
+body {
+  background-color: var(--color-canvas);
+  color: var(--color-ink);
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-display,
+.display-font {
+  font-family: var(--font-display);
+}
+
+.sunset-stripe {
+  background: linear-gradient(
+    90deg,
+    var(--color-primary) 0%,
+    var(--color-sunshine-700) 30%,
+    var(--color-sunshine-500) 55%,
+    var(--color-yellow-saturated) 80%,
+    var(--color-cream) 100%
+  );
+}
