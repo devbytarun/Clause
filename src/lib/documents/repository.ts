@@ -246,3 +246,61 @@ export async function countRecentUploads(
     );
   return rows[0]?.n ?? 0;
 }
+
+export interface AnalysisWithModel {
+  documentId: string;
+  modelId: string;
+  result: unknown;
+  inputTokens: number | null;
+  outputTokens: number | null;
+}
+
+/** Ownership-checked analysis read (blueprint §15). */
+export async function getAnalysisForUser(
+  documentId: string,
+  userId: string
+): Promise<AnalysisWithModel | null> {
+  const rows = await db
+    .select({
+      documentId: documents.id,
+      modelId: analyses.modelId,
+      result: analyses.result,
+      inputTokens: analyses.inputTokens,
+      outputTokens: analyses.outputTokens,
+    })
+    .from(analyses)
+    .innerJoin(documents, eq(analyses.documentId, documents.id))
+    .where(
+      and(
+        eq(analyses.documentId, documentId),
+        eq(documents.userId, userId),
+        isNull(documents.deletedAt)
+      )
+    )
+    .limit(1);
+  const row = rows[0];
+  if (!row) return null;
+  return { ...row, result: row.result as unknown };
+}
+
+/** Ownership-checked single-page text (blueprint §15 pages endpoint). */
+export async function getPageForUser(
+  documentId: string,
+  userId: string,
+  pageNumber: number
+): Promise<{ pageNumber: number; text: string } | null> {
+  const rows = await db
+    .select({ pageNumber: documentPages.pageNumber, text: documentPages.text })
+    .from(documentPages)
+    .innerJoin(documents, eq(documentPages.documentId, documents.id))
+    .where(
+      and(
+        eq(documentPages.documentId, documentId),
+        eq(documentPages.pageNumber, pageNumber),
+        eq(documents.userId, userId),
+        isNull(documents.deletedAt)
+      )
+    )
+    .limit(1);
+  return rows[0] ?? null;
+}

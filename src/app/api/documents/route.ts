@@ -54,16 +54,21 @@ export const POST = withAuth(async (req: NextRequest, ctx) => {
 
   const sha256 = createHash("sha256").update(bytes).digest("hex");
 
-  const duplicate = await findDuplicateForUser(ctx.userId, sha256);
-  if (duplicate) {
-    return jsonOk(
-      {
-        duplicateOf: duplicate.id,
-        message:
-          "You have already uploaded a document identical to this one.",
-      },
-      409
-    );
+  const confirmDuplicate =
+    new URL(req.url).searchParams.get("confirm") === "1";
+
+  if (!confirmDuplicate) {
+    const duplicate = await findDuplicateForUser(ctx.userId, sha256);
+    if (duplicate) {
+      return jsonOk(
+        {
+          duplicateOf: duplicate.id,
+          message:
+            "You have already uploaded a document identical to this one. Upload again to store a separate copy.",
+        },
+        409
+      );
+    }
   }
 
   const docId = crypto.randomUUID();
