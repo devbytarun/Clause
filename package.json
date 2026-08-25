@@ -18,10 +18,12 @@
     "db:migrate": "drizzle-kit migrate"
   },
   "dependencies": {
+    "@auth/drizzle-adapter": "1.11.3",
     "@google/genai": "^2.18.0",
     "drizzle-orm": "^0.45.2",
     "next": "16.3.2",
     "next-auth": "5.0.0-beta.32",
+    "nodemailer": "^8.0.11",
     "postgres": "^3.4.9",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
@@ -32,6 +34,7 @@
     "@eslint/eslintrc": "^3.3.1",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^24.0.0",
+    "@types/nodemailer": "^8.0.1",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "drizzle-kit": "^0.31.10",

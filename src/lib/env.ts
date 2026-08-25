@@ -26,6 +26,15 @@ const serverEnvSchema = z.object({
   RATE_LIMIT_RETRY_PER_HOUR: z.coerce.number().int().positive().default(3),
 
   SENTRY_DSN: z.url().optional(),
+
+  GOOGLE_CLIENT_ID: z.string().min(1).optional(),
+  GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
+
+  EMAIL_SERVER_HOST: z.string().min(1).optional(),
+  EMAIL_SERVER_PORT: z.coerce.number().int().positive().optional(),
+  EMAIL_SERVER_USER: z.string().min(1).optional(),
+  EMAIL_SERVER_PASSWORD: z.string().min(1).optional(),
+  EMAIL_FROM: z.email().optional(),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

@@ -73,5 +73,5 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Migration round-trip tests
-        run: pnpm test -- src/db/migrations.test.ts
+      - name: Full test suite against clean Postgres
+        run: pnpm test
