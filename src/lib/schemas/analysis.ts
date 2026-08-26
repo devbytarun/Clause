@@ -99,10 +99,3 @@ export interface VerifiedSource extends Source {
   /** Present when the citation was found on a different page than cited. */
   correctedPage?: number;
 }
-
-export function attachVerification<T>(
-  item: T & { source: Source },
-  verification: VerifiedSource
-): T & { source: VerifiedSource } {
-  return { ...item, source: verification };
-}

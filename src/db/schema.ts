@@ -21,18 +21,6 @@ const citext = customType<{ data: string; driverData: string }>({
   },
 });
 
-export const DOCUMENT_STATUSES = [
-  "queued",
-  "extracting",
-  "analyzing",
-  "ready",
-  "failed",
-] as const;
-
-export const ANALYSIS_STATUSES = ["pending", "complete", "failed"] as const;
-
-export const MESSAGE_ROLES = ["user", "assistant"] as const;
-
 /**
  * users.id mirrors Supabase auth.users.id — Supabase Auth owns identity;
  * this table carries app profile data and anchors all FK ownership chains.

@@ -107,6 +107,13 @@ export async function listDocumentsForUser(
   if (options.q) {
     conditions.push(sql`${documents.originalFilename} ILIKE ${"%" + options.q + "%"}`);
   }
+  // Opaque cursor = ISO timestamp of the last item on the previous page.
+  if (options.cursor) {
+    const cursorDate = new Date(options.cursor);
+    if (!Number.isNaN(cursorDate.getTime())) {
+      conditions.push(sql`${documents.createdAt} < ${cursorDate}`);
+    }
+  }
 
   const rows = await db
     .select({
@@ -130,7 +137,10 @@ export async function listDocumentsForUser(
 
   return {
     items,
-    nextCursor: hasMore && items.length > 0 ? String(items.length) : null,
+    nextCursor:
+      hasMore && items.length > 0
+        ? items[items.length - 1]!.createdAt.toISOString()
+        : null,
   };
 }
 
@@ -232,19 +242,6 @@ export async function getStoragePath(
     .where(eq(documents.id, id))
     .limit(1);
   return rows[0]?.storagePath ?? null;
-}
-
-export async function countRecentUploads(
-  userId: string,
-  windowStart: Date
-): Promise<number> {
-  const rows = await db
-    .select({ n: sql<number>`count(*)::int` })
-    .from(documents)
-    .where(
-      and(eq(documents.userId, userId), sql`${documents.createdAt} >= ${windowStart}`)
-    );
-  return rows[0]?.n ?? 0;
 }
 
 export interface AnalysisWithModel {

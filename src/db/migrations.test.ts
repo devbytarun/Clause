@@ -36,7 +36,7 @@ d("migration round-trip", () => {
       WHERE table_schema = 'public'
         AND table_name IN (
           'users', 'documents', 'document_pages', 'analyses',
-          'conversations', 'messages'
+          'conversations', 'messages', 'rate_limit_windows'
         )
     `;
     const tables = result.map((r) => r.table_name).sort();
@@ -46,6 +46,7 @@ d("migration round-trip", () => {
       "document_pages",
       "documents",
       "messages",
+      "rate_limit_windows",
       "users",
     ]);
   });

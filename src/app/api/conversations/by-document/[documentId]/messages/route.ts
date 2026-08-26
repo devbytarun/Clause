@@ -7,26 +7,28 @@ import {
   streamChatTurn,
 } from "@/lib/chat/service";
 import { db } from "@/db";
-import { conversations } from "@/db/schema";
-import { and, eq } from "drizzle-orm";
+import { conversations, documents } from "@/db/schema";
+import { and, eq, isNull } from "drizzle-orm";
 
-
+type Params = { documentId: string };
 
 async function assertConversationAccess(documentId: string, userId: string) {
   const rows = await db
     .select({ id: conversations.id })
     .from(conversations)
+    .innerJoin(documents, eq(conversations.documentId, documents.id))
     .where(
       and(
         eq(conversations.documentId, documentId),
-        eq(conversations.userId, userId)
+        eq(conversations.userId, userId),
+        isNull(documents.deletedAt)
       )
     )
     .limit(1);
   return rows[0] ?? null;
 }
 
-export const GET = withAuth<{ documentId: string }>(async (req, ctx) => {
+export const GET = withAuth<Params>(async (req, ctx) => {
   const { documentId } = await ctx.params;
 
   const conv = await assertConversationAccess(documentId, ctx.userId);
@@ -45,7 +47,7 @@ export const GET = withAuth<{ documentId: string }>(async (req, ctx) => {
   return jsonOk(page);
 });
 
-export const POST = withAuth<{ documentId: string }>(async (req, ctx) => {
+export const POST = withAuth<Params>(async (req, ctx) => {
   const { documentId } = await ctx.params;
 
   let body: { content?: unknown };
