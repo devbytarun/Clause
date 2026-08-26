@@ -18,7 +18,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "process-document": "tsx src/pipeline/process-document.ts",
-    "fixtures:generate": "tsx scripts/generate-fixtures.ts"
+    "fixtures:generate": "tsx scripts/generate-fixtures.ts",
+    "eval:run": "tsx scripts/run-eval.ts"
   },
   "dependencies": {
     "@google/genai": "^2.18.0",

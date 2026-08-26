@@ -4,11 +4,16 @@ import { getDocumentForUser } from "@/lib/documents/repository";
 import { getStorage } from "@/lib/storage";
 import { StorageError } from "@/lib/storage/types";
 import { getEnv } from "@/lib/env";
+import { consumeRateLimit } from "@/lib/rate-limit";
 
 export const GET = withAuth<{ id: string }>(async (_req, ctx) => {
   const { id } = await ctx.params;
   const doc = await getDocumentForUser(id, ctx.userId);
   if (!doc) return jsonError(404, "not_found");
+
+  // Signed-URL issuance limit (blueprint §18): 60/h per user.
+  const rl = await consumeRateLimit(`fileurl:${ctx.userId}`, 60, 3600);
+  if (!rl.allowed) return jsonError(429, "rate_limited");
 
   try {
     const storage = getStorage();

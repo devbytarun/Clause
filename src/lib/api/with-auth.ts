@@ -9,6 +9,25 @@ export interface AuthedContext {
 type RouteParams = Record<string, string>;
 
 /**
+ * Same-origin enforcement for mutating requests (blueprint §18 CSRF
+ * posture): JSON+same-origin-cookie routes must present an Origin that
+ * matches the request host. Safe methods are not checked.
+ */
+function originAllowed(req: NextRequest): boolean {
+  const method = req.method.toUpperCase();
+  if (method === "GET" || method === "HEAD" || method === "OPTIONS") {
+    return true;
+  }
+  const origin = req.headers.get("origin");
+  if (!origin) return true; // Non-browser clients (curl) — cookie still required.
+  try {
+    return new URL(origin).host === req.headers.get("host");
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Wraps a route handler so it only executes for authenticated users.
  * Resolves the session server-side; client-sent identity is ignored.
  */
@@ -22,6 +41,9 @@ export function withAuth<P extends RouteParams = RouteParams>(
     req: NextRequest,
     ctx: { params: Promise<P> }
   ): Promise<Response> => {
+    if (!originAllowed(req)) {
+      return jsonError(403, "bad_request");
+    }
     const user = await getSessionUser();
     if (!user) return jsonError(401, "unauthorized");
     return handler(req, { ...ctx, userId: user.id });

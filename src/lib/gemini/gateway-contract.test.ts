@@ -41,6 +41,18 @@ const validAnalysisJson = JSON.stringify({
   questions_to_ask: [],
 });
 
+function emptyStream() {
+  const iterator: AsyncIterableIterator<string> = {
+    [Symbol.asyncIterator]() {
+      return iterator;
+    },
+    async next() {
+      return { value: undefined, done: true as const };
+    },
+  };
+  return { deltas: iterator, usage: () => ({ inputTokens: 0, outputTokens: 0 }) };
+}
+
 function makeTransportScript(
   responses: Array<() => Promise<RawGeneration>>
 ): GeminiTransport & { calls: number } {
@@ -54,6 +66,9 @@ function makeTransportScript(
       i++;
       if (!step) throw new Error("script exhausted");
       return step();
+    },
+    async streamChat() {
+      return emptyStream();
     },
   };
 }

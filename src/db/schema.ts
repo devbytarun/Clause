@@ -193,3 +193,26 @@ export type DocumentPage = typeof documentPages.$inferSelect;
 export type Analysis = typeof analyses.$inferSelect;
 export type Conversation = typeof conversations.$inferSelect;
 export type Message = typeof messages.$inferSelect;
+
+import { primaryKey } from "drizzle-orm/pg-core";
+
+/**
+ * Postgres-backed fixed-window rate limiting (blueprint section 18).
+ */
+export const rateLimitWindows = pgTable(
+  "rate_limit_windows",
+  {
+    key: text("key").notNull(),
+    windowStart: timestamp("window_start", {
+      mode: "date",
+      withTimezone: true,
+    })
+      .notNull()
+      .defaultNow(),
+    count: integer("count").notNull().default(0),
+  },
+  (table) => [
+    primaryKey({ columns: [table.key, table.windowStart] }),
+    check("rate_limit_count_check", sql`${table.count} >= 0`),
+  ]
+);

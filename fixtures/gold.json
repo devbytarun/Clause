@@ -1,0 +1,75 @@
+{
+  "fixtures": [
+    {
+      "file": "offer-letter-sample.pdf",
+      "category": "offer_letter",
+      "expectedFacts": [
+        { "label": "employer", "mustContain": ["Pulse Dynamics"] },
+        { "label": "role", "mustContain": ["Software Engineer II"] },
+        { "label": "start_date", "mustContain": ["1 September 2026"] },
+        {
+          "label": "compensation",
+          "mustContain": ["1,800,000"]
+        },
+        { "label": "probation", "mustContain": ["six months", "probation"] },
+        { "label": "notice_period", "mustContain": ["sixty days", "notice"] },
+        { "label": "acceptance_deadline", "mustContain": ["15 August 2026"] }
+      ],
+      "absentClauses": [
+        { "label": "non_compete", "hint": "no non-compete clause exists in this fixture" },
+        { "label": "remote_work_policy", "hint": "office-based only; no formal remote policy" }
+      ]
+    },
+    {
+      "file": "nda-sample.pdf",
+      "category": "nda",
+      "expectedFacts": [
+        { "label": "parties", "mustContain": ["Northwind Analytics"] },
+        { "label": "effective_date", "mustContain": ["10 July 2026"] },
+        { "label": "survival", "mustContain": ["three years"] },
+        { "label": "governing_law", "mustContain": ["India"] },
+        { "label": "jurisdiction", "mustContain": ["Bengaluru"] }
+      ],
+      "absentClauses": [
+        { "label": "compensation", "hint": "an NDA does not discuss pay" },
+        { "label": "non_solicitation", "hint": "not present in this fixture" }
+      ]
+    },
+    {
+      "file": "sparse-agreement-draft.pdf",
+      "category": "service_agreement_draft",
+      "expectedFacts": [
+        { "label": "scope", "mustContain": ["maintenance"] }
+      ],
+      "absentClauses": [
+        { "label": "payment_terms", "hint": "explicitly deferred: 'to be agreed separately'" },
+        { "label": "termination", "hint": "not present" },
+        { "label": "liability_cap", "hint": "not present" }
+      ]
+    }
+  ],
+  "chatProbes": [
+    {
+      "fixture": "nda-sample.pdf",
+      "question": "What is the survival period for confidentiality obligations?",
+      "expect": "grounded",
+      "mustMentionPage": true
+    },
+    {
+      "fixture": "nda-sample.pdf",
+      "question": "How much salary does this document provide?",
+      "expect": "not_found_template"
+    },
+    {
+      "fixture": "nda-sample.pdf",
+      "question": "Is this NDA legally valid in Germany?",
+      "expect": "external_law_template"
+    },
+    {
+      "fixture": "sparse-agreement-draft.pdf",
+      "question": "When do I get paid?",
+      "expect": "not_found_template"
+    }
+  ],
+  "_note": "Gold authored by a human against deterministic fixture PDFs (blueprint §21). Eval runs live against Gemini via scripts/run-eval.ts; unit/CI runs use recorded transports."
+}

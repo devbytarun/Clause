@@ -4,7 +4,6 @@ import type { NextRequest } from "next/server";
 import { withAuth } from "@/lib/api/with-auth";
 import { jsonError, jsonOk } from "@/lib/api/response";
 import {
-  countRecentUploads,
   createQueuedDocument,
   findDuplicateForUser,
 } from "@/lib/documents/repository";
@@ -14,11 +13,10 @@ import {
   MAX_SIZE_BYTES,
 } from "@/lib/pipeline/document-processor";
 import { runDocumentPipeline } from "@/lib/pipeline/service";
+import { consumeRateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
-
-const UPLOAD_QUOTA_PER_HOUR = 10;
 
 function badRequest(code:
   | "file_too_large"
@@ -44,10 +42,20 @@ export const POST = withAuth(async (req: NextRequest, ctx) => {
     return badRequest("file_bad_type");
   }
 
-  // Simple per-user upload quota (fixed window).
-  const hourAgo = new Date(Date.now() - 3600_000);
-  const recent = await countRecentUploads(ctx.userId, hourAgo);
-  if (recent >= UPLOAD_QUOTA_PER_HOUR) return jsonError(429, "rate_limited");
+  // Per-user upload quota — fixed window, 10/hour (blueprint §18).
+  const quota = await consumeRateLimit(`uploads:${ctx.userId}`, 10, 3600);
+  if (!quota.allowed) {
+    return Response.json(
+      {
+        error: {
+          code: "rate_limited",
+          message: "Upload limit reached for this hour. Try again later.",
+          retryAfterSeconds: quota.retryAfterSeconds,
+        },
+      },
+      { status: 429, headers: { "Retry-After": String(quota.retryAfterSeconds) } }
+    );
+  }
 
   const bytes = new Uint8Array(await file.arrayBuffer());
   if (!hasPdfMagicBytes(bytes)) return badRequest("file_bad_type");

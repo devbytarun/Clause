@@ -19,6 +19,18 @@ import type { GeminiTransport } from "@/lib/gemini/gateway";
 
 const d = TEST_DATABASE_URL ? describe : describe.skip;
 
+function emptyStream() {
+  const iterator: AsyncIterableIterator<string> = {
+    [Symbol.asyncIterator]() {
+      return iterator;
+    },
+    async next() {
+      return { value: undefined, done: true as const };
+    },
+  };
+  return { deltas: iterator, usage: () => ({ inputTokens: 0, outputTokens: 0 }) };
+}
+
 function okTransport(): GeminiTransport {
   return {
     async generate() {
@@ -49,6 +61,9 @@ function okTransport(): GeminiTransport {
         inputTokens: 42,
         outputTokens: 17,
       };
+    },
+    async streamChat() {
+      return emptyStream();
     },
   };
 }
@@ -172,6 +187,9 @@ d("pipeline service integration", () => {
     const failingTransport: GeminiTransport = {
       async generate() {
         throw Object.assign(new Error("429 quota"), { status: 429 });
+      },
+      async streamChat() {
+        return emptyStream();
       },
     };
 

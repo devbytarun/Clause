@@ -18,6 +18,7 @@ import {
   DocumentActions,
   StatusPoller,
 } from "@/components/workspace/document-actions";
+import { ChatDrawer } from "@/components/workspace/chat-drawer";
 
 export const dynamic = "force-dynamic";
 
@@ -305,7 +306,18 @@ export default async function WorkspacePage({ params, searchParams }: PageProps)
               )}
               {sections && (
                 parsedAnalysis!.success ? (
-                  <AnalysisTabs sections={sections} />
+                  <>
+                    <AnalysisTabs sections={sections} />
+                    <div className="mt-6">
+                      <ChatDrawer
+                        documentId={doc.id}
+                        suggestedQuestions={parsedAnalysis!.data.questions_to_ask.map(
+                          (q) => q.question
+                        )}
+                        disabledReason={null}
+                      />
+                    </div>
+                  </>
                 ) : (
                   <EmptySection text="Stored analysis could not be interpreted. Try re-running the analysis." />
                 )

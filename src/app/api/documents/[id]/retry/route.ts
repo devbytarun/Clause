@@ -6,6 +6,7 @@ import {
   updateStatus,
 } from "@/lib/documents/repository";
 import { runDocumentPipeline } from "@/lib/pipeline/service";
+import { consumeRateLimit } from "@/lib/rate-limit";
 
 export const maxDuration = 60;
 
@@ -22,6 +23,10 @@ export const POST = withAuth<{ id: string }>(async (_req, ctx) => {
   if (doc.attempts >= MAX_ATTEMPTS_PER_DOC) {
     return jsonError(429, "rate_limited");
   }
+
+  // Retry limit (blueprint §18): 3/hour per document.
+  const rl = await consumeRateLimit(`retry:${id}`, 3, 3600);
+  if (!rl.allowed) return jsonError(429, "rate_limited");
 
   await updateStatus(id, "queued", { errorCode: null });
 
