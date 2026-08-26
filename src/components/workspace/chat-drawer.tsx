@@ -128,8 +128,8 @@ export function ChatDrawer({
             throw new Error(
               data.code === "document_too_large"
                 ? "Document too large for chat context."
-                : data.code === "not_found"
-                  ? undefined
+                : data.code === "ai_capacity"
+                  ? "The AI service has reached today's usage capacity. Please try again tomorrow."
                   : "The AI service could not answer. Your history is intact."
             );
           }

@@ -19,6 +19,8 @@ import {
   POST_DOCUMENT_REMINDER,
 } from "@/lib/chat/prompts";
 import { createGeminiGateway, GatewayError } from "@/lib/gemini/gateway";
+import { consumeRateLimit } from "@/lib/rate-limit";
+import { getEnv } from "@/lib/env";
 
 /**
  * ChatService (blueprint §11): one conversation per document, created
@@ -156,7 +158,15 @@ export type StreamChatTurnResult =
       inputTokens: number;
       outputTokens: number;
     }
-  | { ok: false; code: "not_ready" | "document_too_large" | GatewayError["code"]; message?: string };
+  | {
+      ok: false;
+      code:
+        | "not_ready"
+        | "document_too_large"
+        | "ai_capacity"
+        | GatewayError["code"];
+      message?: string;
+    };
 
 /** Runs one grounded chat turn end-to-end and persists both messages. */
 export async function streamChatTurn(
@@ -185,6 +195,17 @@ export async function streamChatTurn(
       return { ok: false, code: "document_too_large" };
     }
     throw err;
+  }
+
+  // Shared daily Gemini budget (free-tier guard): consumed before the
+  // user message is persisted, so a rejected turn leaves no history hole.
+  const daily = await consumeRateLimit(
+    "gemini:daily",
+    getEnv().GEMINI_DAILY_REQUEST_LIMIT,
+    86_400
+  );
+  if (!daily.allowed) {
+    return { ok: false, code: "ai_capacity" };
   }
 
   await db.insert(messages).values({

@@ -20,6 +20,7 @@ legality, validity, or enforceability.
 | [storage.md](./storage.md) | Private bucket, signed URLs, deletion |
 | [pipeline.md](./pipeline.md) | Upload → extraction → analysis → validation |
 | [gemini.md](./gemini.md) | Gateway, models, structured output, streaming |
+| [gemini-free-tier.md](./gemini-free-tier.md) | Free-tier limits, efficiency measures, limit behavior |
 | [grounding-and-citations.md](./grounding-and-citations.md) | Citation validator, prompt-injection containment, chat grounding |
 | [security.md](./security.md) | AuthZ model, rate limits, headers, secrets |
 | [privacy.md](./privacy.md) | Data flow disclosure, free-tier posture, deletion |

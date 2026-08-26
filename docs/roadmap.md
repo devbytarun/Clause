@@ -20,8 +20,10 @@ should trigger building it:
 
 ## Launch checklist owned by the operator
 
-- Gemini paid Tier 1 before soliciting sensitive documents (privacy +
-  rate limits); spend alert near tier cap.
-- Verify Neon backup retention figure → update `/privacy` copy.
+- Verify the key's real RPM/RPD in AI Studio and set
+  `GEMINI_DAILY_REQUEST_LIMIT` to match (default 400).
+- Paid Tier 1 only if/when the project needs it: trigger = sustained
+  daily-budget exhaustion (`ai_capacity` failures) or a privacy
+  requirement that submitted documents never train Google products.
 - Restricted Gemini API key; rotation cadence on a calendar.
 - Sentry DSN wired if incident visibility is wanted.

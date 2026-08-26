@@ -15,6 +15,8 @@ import { createGeminiGateway } from "@/lib/gemini/gateway";
 import { applyPolicyFilter } from "@/lib/pipeline/policy-filter";
 import { validateAnalysisCitations } from "@/lib/pipeline/citation-runner";
 import { GatewayError, type GeminiTransport } from "@/lib/gemini/gateway";
+import { consumeRateLimit } from "@/lib/rate-limit";
+import { getEnv } from "@/lib/env";
 
 /**
  * Document pipeline service (blueprint §8 steps 6–14).
@@ -62,6 +64,19 @@ export async function runDocumentPipeline(
     });
 
     const documentBlock = buildPageMarkedText(processed.pages);
+
+    // Shared daily Gemini budget (free-tier guard, D-002): one unit per
+    // analysis attempt. Consumed only when we are about to call the model.
+    const daily = await consumeRateLimit(
+      "gemini:daily",
+      getEnv().GEMINI_DAILY_REQUEST_LIMIT,
+      86_400
+    );
+    if (!daily.allowed) {
+      await updateStatus(documentId, "failed", { errorCode: "ai_capacity" });
+      return { claimed: true };
+    }
+
     const gateway = createGeminiGateway(deps.transport);
     const { result, usage } = await gateway.analyzeDocument(documentBlock);
 

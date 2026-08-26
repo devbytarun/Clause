@@ -13,8 +13,11 @@ Stated plainly, as built.
   independently verified" everywhere they render.
 - **English-language documents only.**
 - **Free-tier Gemini at launch (D-002):** content may be used by Google
-  for product improvement; disclosed in consent + login copy. Paid tier
-  removes this but is an operator cost decision.
+  for product improvement; disclosed in consent + login copy. Daily
+  request budget (default 400/day shared across analysis + chat) and
+  per-user limits keep traffic inside free quotas — behavior when
+  limits hit is documented in
+  [gemini-free-tier.md](./gemini-free-tier.md).
 - Dashboard lists the most recent page of documents; API supports full
   cursor pagination (`nextCursor`) but no infinite-scroll UI yet.
 

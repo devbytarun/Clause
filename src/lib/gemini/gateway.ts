@@ -332,7 +332,9 @@ export function createGeminiGateway(
           systemInstruction: input.systemInstruction,
           userPrompt: input.userPrompt,
           thinkingBudget: Number.isFinite(budget) ? budget : 0,
-          maxOutputTokens: input.maxOutputTokens ?? 4096,
+          // Grounded answers are short; a hard ceiling keeps runaway
+          // generations from draining output-token budgets.
+          maxOutputTokens: input.maxOutputTokens ?? 1536,
         },
         onDelta
       ).then((gen) => ({

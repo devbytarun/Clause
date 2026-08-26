@@ -12,8 +12,9 @@
  */
 
 export const DOC_TEXT_CAP_TOKENS = 110_000;
-export const HISTORY_MAX_MESSAGES = 12;
-export const HISTORY_CAP_TOKENS = 6_000;
+/** Free-tier efficiency: tighter history window than the ceiling allows. */
+export const HISTORY_MAX_MESSAGES = 10;
+export const HISTORY_CAP_TOKENS = 4_000;
 
 export function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4);

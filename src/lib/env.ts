@@ -31,6 +31,13 @@ const serverEnvSchema = z.object({
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1).optional(),
 
   CRON_SECRET: z.string().min(16).optional(),
+
+  /**
+   * App-level daily cap on Gemini calls (analysis + chat turns share it).
+   * Conservative default keeps aggregate traffic inside typical free-tier
+   * per-day model limits; adjust to match the AI Studio console value.
+   */
+  GEMINI_DAILY_REQUEST_LIMIT: z.coerce.number().int().positive().default(400),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
