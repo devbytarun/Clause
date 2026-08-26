@@ -35,23 +35,28 @@ d("migration round-trip", () => {
       SELECT table_name FROM information_schema.tables
       WHERE table_schema = 'public'
         AND table_name IN (
-          'users', 'accounts', 'sessions', 'verification_tokens',
-          'documents', 'document_pages', 'analyses',
+          'users', 'documents', 'document_pages', 'analyses',
           'conversations', 'messages'
         )
     `;
     const tables = result.map((r) => r.table_name).sort();
     expect(tables).toEqual([
-      "accounts",
       "analyses",
       "conversations",
       "document_pages",
       "documents",
       "messages",
-      "sessions",
       "users",
-      "verification_tokens",
     ]);
+  });
+
+  it("drops legacy Auth.js tables on upgrade", async () => {
+    const result = await client`
+      SELECT table_name FROM information_schema.tables
+      WHERE table_schema = 'public'
+        AND table_name IN ('accounts', 'sessions', 'verification_tokens')
+    `;
+    expect(result).toHaveLength(0);
   });
 
   it("enforces the mime_type CHECK constraint", async () => {

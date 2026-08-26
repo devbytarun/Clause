@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   analyses,
@@ -303,4 +303,61 @@ export async function getPageForUser(
     )
     .limit(1);
   return rows[0] ?? null;
+}
+
+export interface PageSearchHit {
+  pageNumber: number;
+  /** Extract of the surrounding text around the first match. */
+  snippet: string;
+}
+
+/**
+ * Full-text search over extracted page text (blueprint §16: viewer
+ * search uses the document_pages index, not the PDF text layer).
+ */
+export async function searchPagesForUser(
+  documentId: string,
+  userId: string,
+  query: string,
+  limit = 8
+): Promise<PageSearchHit[]> {
+  const trimmed = query.trim();
+  if (trimmed.length === 0 || trimmed.length > 200) return [];
+
+  const rows = await db
+    .select({
+      pageNumber: documentPages.pageNumber,
+      text: documentPages.text,
+    })
+    .from(documentPages)
+    .innerJoin(documents, eq(documentPages.documentId, documents.id))
+    .where(
+      and(
+        eq(documentPages.documentId, documentId),
+        eq(documents.userId, userId),
+        isNull(documents.deletedAt),
+        sql`${documentPages.text} ILIKE ${"%" + escapedLike(trimmed) + "%"}`
+      )
+    )
+    .orderBy(asc(documentPages.pageNumber))
+    .limit(Math.min(limit, 20));
+
+  const needle = trimmed.toLowerCase();
+  return rows.map((row) => {
+    const idx = row.text.toLowerCase().indexOf(needle);
+    const start = Math.max(0, (idx === -1 ? 0 : idx) - 60);
+    const end = Math.min(row.text.length, start + 180);
+    const prefix = start > 0 ? "…" : "";
+    return {
+      pageNumber: row.pageNumber,
+      snippet:
+        prefix +
+        row.text.slice(start, end).replace(/\s+/g, " ").trim() +
+        (end < row.text.length ? "…" : ""),
+    };
+  });
+}
+
+function escapedLike(value: string): string {
+  return value.replace(/[%_\\]/g, "\\$&");
 }

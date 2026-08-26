@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
+import { getSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 interface LoginPanelProps {
   googleEnabled: boolean;
@@ -10,33 +10,50 @@ interface LoginPanelProps {
 
 export function LoginPanel({ googleEnabled, emailEnabled }: LoginPanelProps) {
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<
-    "idle" | "sending" | "sent" | "error"
-  >("idle");
+  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">(
+    "idle"
+  );
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function handleGoogle() {
+    setMessage(null);
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/api/auth/callback`,
+        },
+      });
+      if (error) throw error;
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Sign-in failed");
+    }
+  }
 
   async function handleEmailSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!email.trim()) return;
     setStatus("sending");
+    setMessage(null);
     try {
-      const res = await signIn("email", { email, redirect: false });
-      setStatus(res?.error ? "error" : "sent");
-    } catch {
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/api/auth/callback`,
+          shouldCreateUser: true,
+        },
+      });
+      if (error) throw error;
+      setStatus("sent");
+    } catch (err) {
       setStatus("error");
+      setMessage(err instanceof Error ? err.message : "Could not send link");
     }
   }
 
-  if (!googleEnabled && !emailEnabled) {
-    return (
-      <div className="card-cream w-full max-w-md rounded-lg border border-beige-deep bg-cream p-8">
-        <h1 className="display-font mb-2 text-3xl">Sign in</h1>
-        <p className="text-sm leading-relaxed text-steel">
-          No sign-in method is configured on this deployment yet. Ask the
-          operator to enable Google sign-in or email magic links.
-        </p>
-      </div>
-    );
-  }
+  const configured = googleEnabled || emailEnabled;
 
   return (
     <div className="w-full max-w-md rounded-lg border border-beige-deep bg-cream p-8">
@@ -45,11 +62,19 @@ export function LoginPanel({ googleEnabled, emailEnabled }: LoginPanelProps) {
         Analyze offers, NDAs, and agreements against their own text.
       </p>
 
+      {!configured && (
+        <p className="text-sm leading-relaxed text-ink-tint">
+          No sign-in method is configured on this deployment yet. Ask the
+          operator to enable Google sign-in or magic-link emails in the
+          Supabase project settings.
+        </p>
+      )}
+
       {googleEnabled && (
         <>
           <button
             type="button"
-            onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+            onClick={handleGoogle}
             className="flex h-11 w-full items-center justify-center rounded-md border border-hairline-strong bg-canvas text-sm font-medium text-ink transition-colors hover:bg-surface"
           >
             Continue with Google
@@ -97,18 +122,20 @@ export function LoginPanel({ googleEnabled, emailEnabled }: LoginPanelProps) {
 
       {status === "sent" && (
         <p role="status" className="mt-4 text-sm leading-relaxed text-ink-tint">
-          Check your inbox — the link is valid for a short time.
+          Check your inbox — the sign-in link is valid for a short time.
         </p>
       )}
-      {status === "error" && (
+      {message && (
         <p role="alert" className="mt-4 text-sm leading-relaxed text-primary-deep">
-          The sign-in link could not be sent. Check the address and try again.
+          {message}
         </p>
       )}
 
       <p className="mt-8 border-t border-beige-deep pt-4 text-xs leading-relaxed text-steel">
         By signing in you acknowledge that uploaded documents are processed
-        through cloud infrastructure and an external AI service.
+        through cloud infrastructure and an external AI service. On the AI
+        provider&apos;s free tier, that content may be used to improve their
+        services.
       </p>
     </div>
   );

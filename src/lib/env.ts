@@ -27,14 +27,8 @@ const serverEnvSchema = z.object({
 
   SENTRY_DSN: z.url().optional(),
 
-  GOOGLE_CLIENT_ID: z.string().min(1).optional(),
-  GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
-
-  EMAIL_SERVER_HOST: z.string().min(1).optional(),
-  EMAIL_SERVER_PORT: z.coerce.number().int().positive().optional(),
-  EMAIL_SERVER_USER: z.string().min(1).optional(),
-  EMAIL_SERVER_PASSWORD: z.string().min(1).optional(),
-  EMAIL_FROM: z.email().optional(),
+  NEXT_PUBLIC_SUPABASE_URL: z.url().optional(),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1).optional(),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

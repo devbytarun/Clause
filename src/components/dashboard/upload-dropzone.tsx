@@ -75,7 +75,8 @@ export function UploadDropzone() {
         <p className="mb-3 text-sm leading-relaxed text-ink-tint">
           Documents are processed through cloud infrastructure and an external
           AI service. Don&apos;t upload information you&apos;re not comfortable
-          transmitting to those services.
+          transmitting to those services. On the AI provider&apos;s free tier,
+          that content may be used to improve their services.
         </p>
         <label className="flex items-center gap-2 text-sm">
           <input
