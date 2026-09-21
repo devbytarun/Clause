@@ -21,6 +21,7 @@ test.describe("citation jump", () => {
   let sql: postgres.Sql;
   let userId = "";
   let documentId = "";
+  let storagePath = "";
   const email = `e2e-${Date.now()}@clause-test.dev`;
 
   test.beforeAll(async () => {
@@ -29,7 +30,7 @@ test.describe("citation jump", () => {
   });
 
   test.afterAll(async () => {
-    if (userId && sql) await cleanupUser(sql, userId);
+    if (userId && sql) await cleanupUser(sql, userId, storagePath ? [storagePath] : []);
     if (sql) await sql.end();
   });
 
@@ -48,32 +49,33 @@ test.describe("citation jump", () => {
     // 2. Seed a ready document for this user and open its workspace.
     const doc = await seedReadyDocument(sql, userId, "e2e-nda.pdf");
     documentId = doc.id;
+    storagePath = doc.storagePath;
     await page.goto(`/documents/${documentId}`);
-    await expect(page.getByRole("heading", { name: "Survival period" })).toBeVisible();
+
+    // 3. Concerns live on their own tab; open it and find the seeded card.
+    await page.getByRole("tab", { name: "Concerns" }).click();
+    const concernHeading = page.getByRole("heading", { name: "Survival period" });
+    await expect(concernHeading).toBeVisible();
 
     // 3. The concern card shows a verified evidence block; clicking the
     //    page badge navigates to the page panel for page 2.
     const badge = page.getByRole("link", { name: "Page 2" }).first();
     await expect(badge).toBeVisible();
 
-    // 4. The embedded viewer targets the correct page fragment.
-    const frame = page.locator("iframe[title*='PDF viewer']");
-    await expect(frame).toHaveAttribute("src", /#page=2/);
-
-    await badge.click();
-    await expect(page.locator("#page-text")).toContainText("Page 2");
-  });
-
-  test("unverified citations render the degraded state, not a page claim", async ({
-    page,
-  }) => {
-    test.skip(!ready, "E2E env not configured");
-
-    await page.goto(`/documents/${documentId}`);
-    // Fixture has only verified citations; assert the unverified chip
-    // styling exists in the app's vocabulary via tooltip title text.
+    // Verified-evidence tooltip vocabulary is present on this tab.
     await expect(
       page.getByTitle("This exact text was found on the cited page.").first()
     ).toBeAttached();
+
+    // 4. The embedded viewer loads a real signed PDF at page 1…
+    const frame = page.locator("iframe[title*='PDF viewer']");
+    await expect(frame).toHaveAttribute("src", /object\/sign\/.+pdf/, {
+      timeout: 15000,
+    });
+    await expect(frame).toHaveAttribute("src", /#page=1/);
+
+    // …and jumps to the cited page after clicking the evidence badge.
+    await badge.click();
+    await expect(frame).toHaveAttribute("src", /#page=2/);
   });
 });

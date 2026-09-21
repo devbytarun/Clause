@@ -2,9 +2,9 @@ import type { NextConfig } from "next";
 
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
-  // The viewer iframe points at the storage domain; our own pages are
-  // never framed anywhere.
-  { key: "X-Frame-Options", value: "DENY" },
+  // The workspace embeds the private PDF route in a same-origin iframe;
+  // SAMEORIGIN still blocks framing by external sites.
+  { key: "X-Frame-Options", value: "SAMEORIGIN" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   {
     key: "Permissions-Policy",

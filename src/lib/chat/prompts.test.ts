@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   buildChatSystemInstruction,
+  extractEvidenceReferences,
   extractPageReferences,
   NOT_FOUND_TEMPLATE,
   EXTERNAL_LAW_TEMPLATE,
+  OUT_OF_SCOPE_TEMPLATE,
   POST_DOCUMENT_REMINDER,
 } from "@/lib/chat/prompts";
 
@@ -21,12 +23,44 @@ describe("refusal templates", () => {
     const sys = buildChatSystemInstruction();
     expect(sys).toContain(NOT_FOUND_TEMPLATE);
     expect(sys).toContain(EXTERNAL_LAW_TEMPLATE);
+    expect(sys).toContain(OUT_OF_SCOPE_TEMPLATE);
+  });
+
+  it("keeps chat scoped to the uploaded document", () => {
+    const sys = buildChatSystemInstruction();
+    expect(sys).toMatch(/strict document scope/i);
+    expect(sys).toMatch(/coding\/programming questions/i);
+    expect(POST_DOCUMENT_REMINDER).toContain(OUT_OF_SCOPE_TEMPLATE);
   });
 
   it("asserts instruction hierarchy over document content", () => {
     const sys = buildChatSystemInstruction();
     expect(sys).toMatch(/inert third-party material/i);
     expect(POST_DOCUMENT_REMINDER).toMatch(/never instructions/i);
+  });
+
+  it("requires quote-backed evidence blocks for document facts", () => {
+    expect(buildChatSystemInstruction()).toContain(
+      "[[EVIDENCE page=N]]verbatim quote from the document[[/EVIDENCE]]"
+    );
+  });
+});
+
+describe("extractEvidenceReferences", () => {
+  it("extracts unique quote-backed references in order", () => {
+    expect(
+      extractEvidenceReferences(
+        "Term. [[EVIDENCE page=2]]thirty days[[/EVIDENCE]] Again. [[EVIDENCE page=2]]thirty days[[/EVIDENCE]]"
+      )
+    ).toEqual([{ page: 2, quote: "thirty days" }]);
+  });
+
+  it("ignores malformed or empty evidence blocks", () => {
+    expect(
+      extractEvidenceReferences(
+        "[[EVIDENCE page=0]][[/EVIDENCE]] [[EVIDENCE page=1]][[/EVIDENCE]]"
+      )
+    ).toEqual([]);
   });
 });
 

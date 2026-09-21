@@ -147,9 +147,18 @@ function buildSdkConfig(input: GenerationInput): GenerateContentConfig {
           responseJsonSchema: input.jsonSchema,
         }
       : {}),
-    ...(input.thinkingBudget !== undefined
+    /**
+     * Thinking controls differ across model generations (2.5 accepts
+     * budget 0; 3.x rejects it). Convention here:
+     *   undefined / 0 → omit the field entirely (model default)
+     *   -1            → dynamic thinking
+     *   > 0           → fixed budget
+     */
+    ...(input.thinkingBudget !== undefined && input.thinkingBudget > 0
       ? { thinkingConfig: { thinkingBudget: input.thinkingBudget } }
-      : {}),
+      : input.thinkingBudget !== undefined && input.thinkingBudget < 0
+        ? { thinkingConfig: { thinkingBudget: input.thinkingBudget } }
+        : {}),
   } as GenerateContentConfig;
 }
 
@@ -157,16 +166,20 @@ function contentsFor(userPrompt: string) {
   return [{ role: "user", parts: [{ text: userPrompt }] }];
 }
 
+const DEFAULT_MODEL = "gemini-3.6-flash";
+
 /** Real SDK transport — server-side only. */
 export function createSdkTransport(): GeminiTransport {
-  const modelId = () =>
-    process.env.GEMINI_ANALYSIS_MODEL ?? "gemini-2.5-flash";
+  const analysisModelId = () =>
+    process.env.GEMINI_ANALYSIS_MODEL ?? DEFAULT_MODEL;
+  const chatModelId = () =>
+    process.env.GEMINI_CHAT_MODEL ?? DEFAULT_MODEL;
 
   return {
     async generate(input): Promise<RawGeneration> {
       const ai = new GoogleGenAI({ apiKey: requireGeminiApiKey() });
       const response = await ai.models.generateContent({
-        model: modelId(),
+        model: analysisModelId(),
         contents: contentsFor(input.userPrompt),
         config: buildSdkConfig(input),
       });
@@ -194,8 +207,7 @@ export function createSdkTransport(): GeminiTransport {
     async streamChat(input): Promise<ChatStream> {
       const ai = new GoogleGenAI({ apiKey: requireGeminiApiKey() });
       const response = await ai.models.generateContentStream({
-        model:
-          process.env.GEMINI_CHAT_MODEL ?? "gemini-2.5-flash",
+        model: chatModelId(),
         contents: contentsFor(input.userPrompt),
         config: buildSdkConfig(input),
       });
@@ -317,9 +329,9 @@ export function createGeminiGateway(
 ): GeminiGateway {
   return {
     analysisModelId: () =>
-      process.env.GEMINI_ANALYSIS_MODEL ?? "gemini-2.5-flash",
+      process.env.GEMINI_ANALYSIS_MODEL ?? DEFAULT_MODEL,
 
-    chatModelId: () => process.env.GEMINI_CHAT_MODEL ?? "gemini-2.5-flash",
+    chatModelId: () => process.env.GEMINI_CHAT_MODEL ?? DEFAULT_MODEL,
 
     chatStream(input, onDelta) {
       const budget =
@@ -332,14 +344,13 @@ export function createGeminiGateway(
           systemInstruction: input.systemInstruction,
           userPrompt: input.userPrompt,
           thinkingBudget: Number.isFinite(budget) ? budget : 0,
-          // Grounded answers are short; a hard ceiling keeps runaway
-          // generations from draining output-token budgets.
-          maxOutputTokens: input.maxOutputTokens ?? 1536,
+          // Generous output token budget allows complete, detailed, and structured responses.
+          maxOutputTokens: input.maxOutputTokens ?? 8192,
         },
         onDelta
       ).then((gen) => ({
         ...gen,
-        modelId: process.env.GEMINI_CHAT_MODEL ?? "gemini-2.5-flash",
+        modelId: process.env.GEMINI_CHAT_MODEL ?? DEFAULT_MODEL,
       }));
     },
 
@@ -390,7 +401,7 @@ export function createGeminiGateway(
               text: gen.text,
               inputTokens: totalIn,
               outputTokens: totalOut,
-              modelId: process.env.GEMINI_ANALYSIS_MODEL ?? "gemini-2.5-flash",
+              modelId: process.env.GEMINI_ANALYSIS_MODEL ?? DEFAULT_MODEL,
             },
             repairUsed,
           };

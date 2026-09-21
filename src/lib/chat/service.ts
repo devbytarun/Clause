@@ -15,9 +15,12 @@ import {
 } from "@/lib/chat/context-builder";
 import {
   buildChatSystemInstruction,
+  extractEvidenceReferences,
   extractPageReferences,
   POST_DOCUMENT_REMINDER,
+  stripEvidenceMarkers,
 } from "@/lib/chat/prompts";
+import { validateSource } from "@/lib/citations/validator";
 import { createGeminiGateway, GatewayError } from "@/lib/gemini/gateway";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { getEnv } from "@/lib/env";
@@ -27,8 +30,6 @@ import { getEnv } from "@/lib/env";
  * lazily; full-document context with budgets; streamed answers whose
  * page references are validated before persistence.
  */
-
-export class ChatNotReadyError extends Error {}
 
 export async function getOrCreateConversation(
   documentId: string,
@@ -154,6 +155,7 @@ export type StreamChatTurnResult =
   | {
       ok: true;
       messageId: number;
+      content: string;
       sources: VerifiedSource[];
       inputTokens: number;
       outputTokens: number;
@@ -248,14 +250,23 @@ export async function streamChatTurn(
     return { ok: false, code };
   }
 
-  const sources = extractPageReferences(outcome.text, loaded.validPages);
+  const evidenceSources = extractEvidenceReferences(outcome.text).map((ref) =>
+    validateSource(
+      { page: ref.page, quote: ref.quote },
+      loaded.pages,
+      loaded.isScanned
+    )
+  );
+  const fallbackSources = extractPageReferences(outcome.text, loaded.validPages);
+  const sources = evidenceSources.length > 0 ? evidenceSources : fallbackSources;
+  const content = stripEvidenceMarkers(outcome.text);
 
   const inserted = await db
     .insert(messages)
     .values({
       conversationId: loaded.conversationId,
       role: "assistant",
-      content: outcome.text,
+      content,
       sources,
       inputTokens: outcome.inputTokens,
       outputTokens: outcome.outputTokens,
@@ -263,8 +274,9 @@ export async function streamChatTurn(
     .returning({ id: messages.id });
 
   return {
-    ok: true,
-    messageId: inserted[0]!.id,
+      ok: true,
+      messageId: inserted[0]!.id,
+      content,
     sources,
     inputTokens: outcome.inputTokens,
     outputTokens: outcome.outputTokens,

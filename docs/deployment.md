@@ -28,7 +28,7 @@ pnpm dev                       # http://localhost:3000
 | `SUPABASE_SERVICE_KEY` | for uploads/purge | server-only service key |
 | `STORAGE_BUCKET` | no (default docs-prod) | private bucket name |
 | `GOOGLE_GENERATIVE_AI_API_KEY` | for AI features | restricted key |
-| `GEMINI_ANALYSIS_MODEL` / `GEMINI_CHAT_MODEL` | no | model override (defaults gemini-2.5-flash) |
+| `GEMINI_ANALYSIS_MODEL` / `GEMINI_CHAT_MODEL` | no | model override (defaults gemini-3.6-flash) |
 | `GEMINI_ANALYSIS_THINKING_BUDGET` / `GEMINI_CHAT_THINKING_BUDGET` | no | thinking tokens (2048 / 0) |
 | `SIGNED_URL_TTL_SECONDS` | no (900) | signed PDF URL lifetime |
 | `RATE_LIMIT_*` | no | upload/chat/file/retry limits |

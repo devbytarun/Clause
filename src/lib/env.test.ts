@@ -10,8 +10,8 @@ const validBase = {
 describe("parseEnv", () => {
   it("accepts the minimal required set and applies defaults", () => {
     const env = parseEnv({ ...validBase });
-    expect(env.GEMINI_ANALYSIS_MODEL).toBe("gemini-2.5-flash");
-    expect(env.GEMINI_CHAT_MODEL).toBe("gemini-2.5-flash");
+    expect(env.GEMINI_ANALYSIS_MODEL).toBe("gemini-3.6-flash");
+    expect(env.GEMINI_CHAT_MODEL).toBe("gemini-3.6-flash");
     expect(env.APP_URL).toBe("http://localhost:3000");
     expect(env.SIGNED_URL_TTL_SECONDS).toBe(900);
     expect(env.STORAGE_BUCKET).toBe("docs-prod");
@@ -69,5 +69,27 @@ describe("parseEnv", () => {
         expect.arrayContaining(["DATABASE_URL", "AUTH_SECRET"])
       );
     }
+  });
+
+  it("treats empty strings on optional vars as unset (template-style .env)", () => {
+    const env = parseEnv({
+      ...validBase,
+      SENTRY_DSN: "",
+      CRON_SECRET: "",
+      GOOGLE_GENERATIVE_AI_API_KEY: "",
+      GEMINI_ANALYSIS_MODEL: "",
+      SIGNED_URL_TTL_SECONDS: "",
+      APP_URL: "",
+    });
+    expect(env.GEMINI_ANALYSIS_MODEL).toBe("gemini-3.6-flash");
+    expect(env.SENTRY_DSN).toBeUndefined();
+    expect(env.CRON_SECRET).toBeUndefined();
+    expect(env.APP_URL).toBe("http://localhost:3000");
+  });
+
+  it("still fails loudly when required vars are empty", () => {
+    expect(() =>
+      parseEnv({ ...validBase, DATABASE_URL: "", AUTH_SECRET: "" })
+    ).toThrow(EnvValidationError);
   });
 });

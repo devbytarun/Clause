@@ -52,6 +52,28 @@ export const HighlightSchema = z.object(CitedItemBase);
 
 export const PositivePointSchema = z.object(CitedItemBase);
 
+export const OMISSION_SEVERITY_LEVELS = ["high", "moderate", "advisory"] as const;
+
+export const OmissionSchema = z.object({
+  title: z.string().min(1),
+  category: z.string().min(1),
+  severity: z.enum(OMISSION_SEVERITY_LEVELS).default("moderate"),
+  missing_protection: z.string().min(1),
+  practical_risk: z.string().min(1),
+  suggested_clause: z.string().min(1),
+});
+
+export const RedlineSchema = z.object({
+  suggested_replacement: z.string().min(1),
+  strikethrough_diff: z.string().min(1),
+  rationale: z.string().min(1),
+  negotiation_drafts: z.object({
+    gentle: z.string().min(1),
+    standard: z.string().min(1),
+    firm: z.string().min(1),
+  }),
+}).optional();
+
 export const ConcernSchema = z.object({
   title: z.string().min(1),
   priority: z.enum(PRIORITY_LEVELS),
@@ -60,6 +82,7 @@ export const ConcernSchema = z.object({
   uncertainty: z.string().min(1),
   plain_english: z.string().min(1),
   source: SourceSchema,
+  redline: RedlineSchema,
 });
 
 export const QuestionToAskSchema = z.object({
@@ -74,6 +97,7 @@ export const AnalysisResultSchema = z.object({
   highlights: z.array(HighlightSchema).default([]),
   positive_points: z.array(PositivePointSchema).default([]),
   concerns: z.array(ConcernSchema).default([]),
+  omissions: z.array(OmissionSchema).default([]),
   questions_to_ask: z.array(QuestionToAskSchema).default([]),
 });
 
@@ -83,6 +107,9 @@ export type Concern = z.infer<typeof ConcernSchema>;
 export type Highlight = z.infer<typeof HighlightSchema>;
 export type PositivePoint = z.infer<typeof PositivePointSchema>;
 export type QuestionToAsk = z.infer<typeof QuestionToAskSchema>;
+export type Omission = z.infer<typeof OmissionSchema>;
+export type Redline = NonNullable<z.infer<typeof RedlineSchema>>;
+
 
 /** Verification states attached by CitationValidator before persistence. */
 export const VERIFICATION_STATES = [

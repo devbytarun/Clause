@@ -45,6 +45,7 @@ export function validateAnalysisCitations(
     positive_points: annotateRequired(result.positive_points),
     concerns: annotateRequired(result.concerns),
     questions_to_ask: annotateOptional(result.questions_to_ask),
+    omissions: result.omissions ?? [],
   };
 
   return {

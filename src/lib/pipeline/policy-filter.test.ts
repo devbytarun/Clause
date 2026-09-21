@@ -42,6 +42,7 @@ function baseResult(): AnalysisResult {
         rationale: "The definition affects what you may discuss later.",
       },
     ],
+    omissions: [],
   };
 }
 

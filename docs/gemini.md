@@ -8,8 +8,8 @@ accounting — lives there and nowhere else.
 
 | Setting | Default | Env override |
 |---|---|---|
-| Analysis model | `gemini-2.5-flash` | `GEMINI_ANALYSIS_MODEL` |
-| Chat model | `gemini-2.5-flash` | `GEMINI_CHAT_MODEL` |
+| Analysis model | `gemini-3.6-flash` | `GEMINI_ANALYSIS_MODEL` |
+| Chat model | `gemini-3.6-flash` | `GEMINI_CHAT_MODEL` |
 | Analysis thinking budget | 2048 tokens | `GEMINI_ANALYSIS_THINKING_BUDGET` |
 | Chat thinking budget | 0 (latency-first) | `GEMINI_CHAT_THINKING_BUDGET` |
 | Temperature | 0.2 (fixed) | — |

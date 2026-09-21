@@ -1,3 +1,6 @@
+import { config as dotenvConfig } from "dotenv";
+dotenvConfig({ path: ".env.local" });
+dotenvConfig({ path: ".env" });
 import { readFile } from "node:fs/promises";
 import { buildPageMarkedText } from "@/lib/pipeline/page-markers";
 import {

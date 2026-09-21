@@ -1,3 +1,6 @@
+import { config as dotenvConfig } from "dotenv";
+dotenvConfig({ path: ".env.local" });
+dotenvConfig({ path: ".env" });
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { buildTextPdf } from "../src/test-support/pdf-writer";

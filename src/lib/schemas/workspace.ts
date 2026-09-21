@@ -6,6 +6,7 @@ import {
   QuestionToAskSchema,
   ConcernSchema,
   OverviewSchema,
+  OmissionSchema,
 } from "@/lib/schemas/analysis";
 
 /**
@@ -33,6 +34,7 @@ export const WorkspaceAnalysisSchema = z.object({
   concerns: z.array(
     ConcernSchema.omit({ source: true }).extend({ source: VerifiedSourceSchema })
   ),
+  omissions: z.array(OmissionSchema).default([]),
   questions_to_ask: z.array(QuestionToAskSchema),
 });
 

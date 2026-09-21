@@ -5,11 +5,8 @@ import { PageSearch } from "@/components/workspace/page-search";
 import { errorMessage } from "@/lib/error-codes";
 
 /**
- * PDF viewer pane (blueprint §16/Phase 5).
- *
- * Uses the browser-native PDF renderer against a server-issued signed
- * URL (#page=N fragment jumps). Signed URLs are refreshed well before
- * their TTL expires so long reading sessions don't break.
+ * PDF viewer pane.
+ * Uses browser-native PDF renderer against a signed URL.
  */
 export function PdfPane({
   documentId,
@@ -46,9 +43,7 @@ export function PdfPane({
   }
 
   useEffect(() => {
-    // Deferred so state updates never run synchronously within the effect.
     const boot = setTimeout(() => void loadSignedUrl(), 0);
-    // Refresh the signed URL every 10 minutes (TTL is 15).
     const timer = setInterval(() => {
       if (Date.now() - issuedAtRef.current > 600_000) void loadSignedUrl();
     }, 60_000);
@@ -64,20 +59,20 @@ export function PdfPane({
   const canNext = page < maxPage;
 
   return (
-    <div className="flex h-full flex-col rounded-lg border border-hairline-soft bg-surface">
-      <div className="flex items-center gap-2 border-b border-hairline-soft p-3">
-        <div className="flex items-center gap-1">
+    <div className="flex h-full flex-col rounded-[10px] border border-[#D8D2C6] bg-[#FFFDF7] overflow-hidden shadow-xs">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#D8D2C6] bg-[#F3F0E8]/50 px-3.5 py-2">
+        <div className="flex items-center gap-1.5">
           <button
             type="button"
             aria-label="Previous page"
             disabled={!canPrev}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
-            className="rounded-md border border-hairline-strong px-2 py-1 text-sm transition-colors hover:bg-canvas disabled:text-muted"
+            className="flex h-7 w-7 items-center justify-center rounded-[4px] border border-[#D8D2C6] bg-[#FFFDF7] font-mono text-[11px] font-bold text-[#171714] transition-colors hover:bg-[#F3F0E8] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#3157D5]"
           >
             ←
           </button>
-          <span className="min-w-[72px] text-center text-xs font-medium text-steel">
-            Page {page}
+          <span className="min-w-[70px] text-center font-mono text-[11px] text-[#646158]">
+            Page <span className="font-bold text-[#171714]">{page}</span>
             {pageCount ? ` / ${pageCount}` : ""}
           </span>
           <button
@@ -85,36 +80,37 @@ export function PdfPane({
             aria-label="Next page"
             disabled={!canNext}
             onClick={() => setPage((p) => Math.min(maxPage, p + 1))}
-            className="rounded-md border border-hairline-strong px-2 py-1 text-sm transition-colors hover:bg-canvas disabled:text-muted"
+            className="flex h-7 w-7 items-center justify-center rounded-[4px] border border-[#D8D2C6] bg-[#FFFDF7] font-mono text-[11px] font-bold text-[#171714] transition-colors hover:bg-[#F3F0E8] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#3157D5]"
           >
             →
           </button>
         </div>
-        <div className="ml-auto w-56">
+        <div className="w-48 sm:w-56">
           <PageSearch documentId={documentId} onJump={(p) => setPage(p)} />
         </div>
       </div>
 
-      <div className="relative min-h-[480px] flex-1">
+      <div className="relative flex-1 min-h-[480px] bg-[#FFFDF7]">
         {error && (
-          <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
-            <p className="text-sm text-ink-tint">{error}</p>
+          <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
+            <p className="text-[13px] text-[#646158]">{error}</p>
             <button
               type="button"
               onClick={() => void loadSignedUrl()}
-              className="rounded-md border border-hairline-strong px-3 py-1.5 text-sm font-medium transition-colors hover:bg-canvas"
+              className="rounded-[6px] border border-[#D8D2C6] bg-[#FFFDF7] px-3.5 py-1.5 font-mono text-[11px] font-bold text-[#171714] transition-colors hover:bg-[#F3F0E8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3157D5]"
             >
-              Reload
+              Reload Viewer
             </button>
           </div>
         )}
         {!error && !signedUrl && (
           <div
-            className="flex h-full items-center justify-center text-sm text-steel"
+            className="flex h-full flex-col items-center justify-center gap-2 font-mono text-[11px] text-[#646158]"
             role="status"
             aria-live="polite"
           >
-            Loading viewer…
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#D8D2C6] border-t-[#F04D35]" />
+            <span>Loading PDF document…</span>
           </div>
         )}
         {!error && signedUrl && (
@@ -122,7 +118,7 @@ export function PdfPane({
             key={`${signedUrl}#${page}`}
             title={`PDF viewer — page ${page}`}
             src={`${signedUrl}#page=${page}`}
-            className="h-[calc(100vh-220px)] min-h-[480px] w-full rounded-b-lg bg-canvas"
+            className="h-full w-full border-0 bg-[#FFFDF7]"
           />
         )}
       </div>

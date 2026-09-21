@@ -97,6 +97,7 @@ export const POST = withAuth<Params>(async (req, ctx) => {
         if (result.ok) {
           send("done", {
             messageId: result.messageId,
+            content: result.content,
             sources: result.sources,
           });
         } else {

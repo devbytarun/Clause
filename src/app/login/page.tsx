@@ -19,24 +19,26 @@ function supabaseAuthConfigured(): boolean {
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const { error } = await searchParams;
-  // Provider visibility mirrors Supabase dashboard configuration via env.
   const googleEnabled =
     supabaseAuthConfigured() &&
     process.env.NEXT_PUBLIC_ENABLE_GOOGLE_SIGNIN === "1";
   const emailEnabled = supabaseAuthConfigured();
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center px-6 py-16">
-      <Link href="/" className="display-font mb-10 text-2xl tracking-tight no-underline">
-        Clause<span className="text-primary">_</span>
+    <main className="flex min-h-screen flex-col items-center justify-center bg-[#F3F0E8] px-6 py-16 text-[#171714]">
+      <Link href="/" className="font-['Georgia',serif] mb-8 text-3xl font-bold tracking-tight text-[#171714] no-underline">
+        Clause<span className="text-[#F04D35]">.</span>
       </Link>
       {error && (
-        <p role="alert" className="mb-4 rounded-md border border-cream-deeper bg-cream px-4 py-2 text-sm text-primary-deep">
+        <p role="alert" className="mb-4 rounded-[6px] border border-[#C53B36]/30 bg-[#FFFDF7] px-4 py-2 text-xs font-mono text-[#C53B36]">
           Sign-in could not be completed. Please try again.
         </p>
       )}
       <LoginPanel googleEnabled={googleEnabled} emailEnabled={emailEnabled} />
-      <div className="sunset-stripe fixed bottom-0 left-0 h-8 w-full" aria-hidden="true" />
+
+      <footer className="mt-8 text-center font-mono text-[11px] text-[#989388]">
+        © {new Date().getFullYear()} Clause · Machine-Validated Contract Intelligence
+      </footer>
     </main>
   );
 }

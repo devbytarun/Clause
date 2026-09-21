@@ -110,7 +110,7 @@ d("migration round-trip", () => {
     `;
     await client`
       INSERT INTO analyses (document_id, model_id, status, result)
-      VALUES (${doc!.id}, 'gemini-2.5-flash', 'complete', '{"overview":{}}'::jsonb)
+      VALUES (${doc!.id}, 'gemini-3.6-flash', 'complete', '{"overview":{}}'::jsonb)
     `;
     await client`DELETE FROM documents WHERE id = ${doc!.id}`;
     const pages = await client`

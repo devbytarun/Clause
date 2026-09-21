@@ -92,7 +92,7 @@ describe("GeminiGateway contract", () => {
     expect(out.result.concerns[0]!.source.page).toBe(2);
     expect(out.usage.inputTokens).toBe(100);
     expect(out.usage.outputTokens).toBe(50);
-    expect(out.usage.modelId).toBe("gemini-2.5-flash");
+    expect(out.usage.modelId).toBe("gemini-3.6-flash");
   });
 
   it("repairs once when output is unparseable JSON", async () => {

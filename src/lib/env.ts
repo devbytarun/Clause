@@ -1,43 +1,72 @@
 import { z } from "zod";
 
+/**
+ * Treats empty/whitespace-only strings as unset so template-style
+ * .env files (VAR= placeholders) validate cleanly instead of failing
+ * on optional fields.
+ */
+function emptied<T extends z.ZodTypeAny>(schema: T) {
+  return z.preprocess(
+    (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+    schema
+  );
+}
+
 const serverEnvSchema = z.object({
+  // Truly required — empty values must fail loudly.
   DATABASE_URL: z.string().min(1).startsWith("postgres", {
     message: "DATABASE_URL must be a Postgres connection string",
   }),
   AUTH_SECRET: z
     .string()
     .min(32, "AUTH_SECRET must be at least 32 characters"),
-  APP_URL: z.url().default("http://localhost:3000"),
 
-  GOOGLE_GENERATIVE_AI_API_KEY: z.string().min(1).optional(),
+  APP_URL: emptied(z.url().default("http://localhost:3000")),
 
-  GEMINI_ANALYSIS_MODEL: z.string().min(1).default("gemini-2.5-flash"),
-  GEMINI_CHAT_MODEL: z.string().min(1).default("gemini-2.5-flash"),
+  GOOGLE_GENERATIVE_AI_API_KEY: emptied(z.string().min(1).optional()),
 
-  SUPABASE_STORAGE_URL: z.url().optional(),
-  SUPABASE_SERVICE_KEY: z.string().min(1).optional(),
-  STORAGE_BUCKET: z.string().min(1).default("docs-prod"),
+  GEMINI_ANALYSIS_MODEL: emptied(
+    z.string().min(1).default("gemini-3.6-flash")
+  ),
+  GEMINI_CHAT_MODEL: emptied(z.string().min(1).default("gemini-3.6-flash")),
 
-  SIGNED_URL_TTL_SECONDS: z.coerce.number().int().positive().default(900),
+  STORAGE_DRIVER: emptied(z.enum(["local", "supabase"]).default("local")),
+  SUPABASE_STORAGE_URL: emptied(z.url().optional()),
+  SUPABASE_SERVICE_KEY: emptied(z.string().min(1).optional()),
+  STORAGE_BUCKET: emptied(z.string().min(1).default("docs-prod")),
 
-  RATE_LIMIT_UPLOADS_PER_HOUR: z.coerce.number().int().positive().default(10),
-  RATE_LIMIT_CHAT_PER_MINUTE: z.coerce.number().int().positive().default(12),
-  RATE_LIMIT_FILE_URLS_PER_HOUR: z.coerce.number().int().positive().default(60),
-  RATE_LIMIT_RETRY_PER_HOUR: z.coerce.number().int().positive().default(3),
+  SIGNED_URL_TTL_SECONDS: emptied(
+    z.coerce.number().int().positive().default(900)
+  ),
 
-  SENTRY_DSN: z.url().optional(),
+  RATE_LIMIT_UPLOADS_PER_HOUR: emptied(
+    z.coerce.number().int().positive().default(10)
+  ),
+  RATE_LIMIT_CHAT_PER_MINUTE: emptied(
+    z.coerce.number().int().positive().default(12)
+  ),
+  RATE_LIMIT_FILE_URLS_PER_HOUR: emptied(
+    z.coerce.number().int().positive().default(60)
+  ),
+  RATE_LIMIT_RETRY_PER_HOUR: emptied(
+    z.coerce.number().int().positive().default(3)
+  ),
 
-  NEXT_PUBLIC_SUPABASE_URL: z.url().optional(),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1).optional(),
+  SENTRY_DSN: emptied(z.url().optional()),
 
-  CRON_SECRET: z.string().min(16).optional(),
+  NEXT_PUBLIC_SUPABASE_URL: emptied(z.url().optional()),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: emptied(z.string().min(1).optional()),
+
+  CRON_SECRET: emptied(z.string().min(16).optional()),
 
   /**
-   * App-level daily cap on Gemini calls (analysis + chat turns share it).
-   * Conservative default keeps aggregate traffic inside typical free-tier
-   * per-day model limits; adjust to match the AI Studio console value.
+   * App-level daily cap on Gemini calls (analysis + chat share it).
+   * Conservative default keeps aggregate traffic inside typical
+   * free-tier per-day limits; match to your AI Studio RPD value.
    */
-  GEMINI_DAILY_REQUEST_LIMIT: z.coerce.number().int().positive().default(400),
+  GEMINI_DAILY_REQUEST_LIMIT: emptied(
+    z.coerce.number().int().positive().default(400)
+  ),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
@@ -80,18 +109,24 @@ export function requireGeminiApiKey(): string {
   return key;
 }
 
+/**
+ * Accepts either the project base (https://xyz.supabase.co) or the full
+ * storage REST base (…/storage/v1) and always yields the project base,
+ * which the storage adapter extends with /storage/v1 itself.
+ */
 export function requireStorageConfig(): {
   url: string;
   serviceKey: string;
   bucket: string;
 } {
-  const url = process.env.SUPABASE_STORAGE_URL?.trim();
+  const rawUrl = process.env.SUPABASE_STORAGE_URL?.trim();
   const serviceKey = process.env.SUPABASE_SERVICE_KEY?.trim();
   const bucket = getEnv().STORAGE_BUCKET;
-  if (!url || !serviceKey) {
+  if (!rawUrl || !serviceKey) {
     throw new Error(
       "SUPABASE_STORAGE_URL and SUPABASE_SERVICE_KEY are required for storage features but are not configured"
     );
   }
+  const url = rawUrl.replace(/\/storage\/v1\/?$/i, "").replace(/\/+$/, "");
   return { url, serviceKey, bucket };
 }

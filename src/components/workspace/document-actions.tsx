@@ -50,7 +50,6 @@ export function DocumentActions({
         );
       }
       router.refresh();
-      // Polling resumes; refresh again shortly to pick up new status.
       setTimeout(() => router.refresh(), 1500);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Retry failed");
@@ -62,7 +61,7 @@ export function DocumentActions({
   return (
     <div className="flex items-center gap-2">
       {error && (
-        <span role="alert" className="text-xs text-primary-deep">
+        <span role="alert" className="font-mono text-[11px] text-[#C53B36]">
           {error}
         </span>
       )}
@@ -71,7 +70,7 @@ export function DocumentActions({
           type="button"
           onClick={handleRetry}
           disabled={busy !== null}
-          className="rounded-md border border-hairline-strong px-3 py-1.5 text-sm font-medium no-underline transition-colors hover:bg-surface disabled:text-muted"
+          className="rounded-[6px] border border-[#D8D2C6] bg-[#FFFDF7] px-3 py-1 font-mono text-[11px] font-bold text-[#171714] transition-colors hover:bg-[#F3F0E8] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3157D5]"
         >
           {busy === "retry" ? "Retrying…" : "Retry"}
         </button>
@@ -80,9 +79,9 @@ export function DocumentActions({
         type="button"
         onClick={handleDelete}
         disabled={busy !== null}
-        className="rounded-md border border-hairline-strong px-3 py-1.5 text-sm font-medium text-primary-deep no-underline transition-colors hover:bg-surface disabled:text-muted"
+        className="rounded-[6px] border border-[#D8D2C6] bg-[#FFFDF7] px-3 py-1 font-mono text-[11px] font-bold text-[#646158] transition-colors hover:border-[#C53B36] hover:bg-[#C53B36]/10 hover:text-[#C53B36] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C53B36]"
       >
-        Delete
+        {busy === "delete" ? "Deleting…" : "Delete"}
       </button>
     </div>
   );
@@ -108,12 +107,21 @@ export function StatusPoller({
     <span
       role="status"
       aria-live="polite"
-      className="rounded-full bg-cream px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-ink-tint"
+      className={`inline-flex items-center gap-1.5 rounded-[4px] px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider ${
+        status === "ready"
+          ? "border border-[#2E7D4F]/30 bg-[#2E7D4F]/10 text-[#2E7D4F]"
+          : status === "failed"
+            ? "border border-[#C53B36]/30 bg-[#C53B36]/10 text-[#C53B36]"
+            : "border border-[#B87316]/30 bg-[#B87316]/10 text-[#B87316]"
+      }`}
     >
-      {status === "queued" && "Queued…"}
-      {status === "extracting" && "Extracting text…"}
-      {status === "analyzing" && "Analyzing…"}
+      {active && (
+        <span className="h-1.5 w-1.5 animate-ping rounded-full bg-[#B87316]" />
+      )}
       {status === "ready" && "Ready"}
+      {status === "queued" && "Queued…"}
+      {status === "extracting" && "Extracting…"}
+      {status === "analyzing" && "Analyzing…"}
       {status === "failed" && "Failed"}
     </span>
   );

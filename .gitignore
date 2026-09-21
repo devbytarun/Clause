@@ -31,3 +31,5 @@ yarn-error.log*
 
 # local tooling
 /.pnpm-store
+/.storage/
+/.tmp-pdf-check/

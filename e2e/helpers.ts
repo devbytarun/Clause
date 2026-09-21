@@ -1,4 +1,6 @@
+import { createHash } from "node:crypto";
 import postgres from "postgres";
+import { buildTextPdf } from "../src/test-support/pdf-writer";
 
 /**
  * E2E seeding helpers. Identity is created through the Supabase Admin
@@ -17,7 +19,7 @@ function requireEnv() {
   }
 }
 
-/** Creates (or reuses) a confirmed user and returns their id. */
+/** Creates (or reuses) a confirmed user via Admin API and returns their id. */
 export async function createTestUser(
   sql: postgres.Sql,
   email: string
@@ -34,32 +36,70 @@ export async function createTestUser(
     body: JSON.stringify({ type: "magiclink", email }),
   });
 
-  let actionLink: string | null = null;
-  if (res.ok) {
-    const body = (await res.json()) as {
-      properties?: { action_link?: string };
-    };
-    actionLink = body.properties?.action_link ?? null;
-  } else {
-    await res.text().catch(() => undefined);
+  if (!res.ok) {
+    throw new Error(
+      `generate_link failed ${res.status}: ${await res.text().catch(() => "")}`
+    );
   }
+  /**
+   * Admin API returns a flat user object:
+   * { id, email, action_link, email_otp, ... }
+   */
+  const body = (await res.json()) as {
+    id?: string;
+    user?: { id?: string };
+    properties?: { action_link?: string };
+    action_link?: string;
+  };
+  const userId = body.id ?? body.user?.id;
+  if (!userId) throw new Error("generate_link returned no user id");
+  const actionLink = body.action_link ?? body.properties?.action_link ?? null;
 
-  const rows = await sql`SELECT id FROM auth.users WHERE email = ${email} LIMIT 1`;
-  const existing = rows[0];
-  if (!existing) {
-    throw new Error(`Supabase user ${email} was not created`);
-  }
-  // Mirror into app users table as getSessionUser would.
+  // Mirror into app users table exactly as getSessionUser would.
   await sql`
-    INSERT INTO users (id, email) VALUES (${existing.id}, ${email})
+    INSERT INTO users (id, email) VALUES (${userId}, ${email})
     ON CONFLICT (id) DO NOTHING
   `;
-  return { id: existing.id, actionLink };
+  return { id: userId, actionLink };
 }
 
 export interface SeededDocument {
   id: string;
   pageWithQuote: number;
+  storagePath: string;
+}
+
+/**
+ * Uploads the real fixture PDF into the private bucket via the service
+ * key so signed-URL issuance (which validates object existence) works.
+ */
+async function uploadObject(storagePath: string): Promise<void> {
+  const base = SUPABASE_URL!;
+  const bytes = buildTextPdf([
+    [
+      "MUTUAL NON-DISCLOSURE AGREEMENT between TestCo and Counterparty.",
+      "Effective date: 1 March 2026.",
+    ],
+    [
+      "CONFIDENTIALITY TERMS. The receiving party acknowledges that",
+      "obligations survive for three years from the date of disclosure.",
+    ],
+  ]);
+  const res = await fetch(
+    `${base}/storage/v1/object/${process.env.STORAGE_BUCKET}/${storagePath}`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${SERVICE_KEY}`,
+        apikey: SERVICE_KEY!,
+        "Content-Type": "application/pdf",
+      },
+      body: new Uint8Array(bytes),
+    }
+  );
+  if (!res.ok) {
+    throw new Error(`object upload failed ${res.status}`);
+  }
 }
 
 /**
@@ -77,11 +117,14 @@ export async function seedReadyDocument(
     "CONFIDENTIALITY TERMS. The receiving party acknowledges that " +
     "obligations survive for three years from the date of disclosure " +
     "and continue thereafter for trade secrets.";
+  const storagePath = `${userId}/${docId}.pdf`;
+
+  await uploadObject(storagePath);
 
   await sql`
     INSERT INTO documents (id, user_id, original_filename, mime_type, size_bytes, sha256, storage_path, status, page_count, char_count, is_scanned)
     VALUES (${docId}, ${userId}, ${filename}, 'application/pdf', 1024,
-            ${crypto.randomUUID().replace(/-/g, "")}, ${userId + "/" + docId + ".pdf"},
+            ${createHash("sha256").update(docId).digest("hex")}, ${storagePath},
             'ready', 2, 900, false)
   `;
   await sql`
@@ -111,12 +154,22 @@ export async function seedReadyDocument(
 
   await sql`
     INSERT INTO analyses (document_id, model_id, status, result, summary_text)
-    VALUES (${docId}, 'gemini-2.5-flash', 'complete', ${JSON.stringify(analysis)}::jsonb, 'NDA summary')
+    VALUES (${docId}, 'gemini-3.6-flash', 'complete', ${JSON.stringify(analysis)}::jsonb, 'NDA summary')
   `;
 
-  return { id: docId, pageWithQuote: 2 };
+  return { id: docId, pageWithQuote: 2, storagePath };
 }
 
-export async function cleanupUser(sql: postgres.Sql, userId: string) {
+export async function cleanupUser(
+  sql: postgres.Sql,
+  userId: string,
+  storagePaths: string[] = []
+) {
+  for (const p of storagePaths) {
+    await fetch(
+      `${SUPABASE_URL}/storage/v1/${process.env.STORAGE_BUCKET}/${p}`,
+      { method: "DELETE", headers: { Authorization: `Bearer ${SERVICE_KEY}`, apikey: SERVICE_KEY! } }
+    ).catch(() => undefined);
+  }
   await sql`DELETE FROM users WHERE id = ${userId}`;
 }
