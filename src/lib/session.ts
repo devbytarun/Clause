@@ -1,7 +1,7 @@
 import { sql } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { purgeExpiredDocuments } from "@/lib/documents/retention";
 
 export type SessionUser = {
   id: string;
@@ -10,72 +10,39 @@ export type SessionUser = {
   image: string | null;
 };
 
-export const DEV_USER: SessionUser = {
-  id: "00000000-0000-0000-0000-000000000001",
-  email: "demo@clause.local",
-  name: "Demo User",
+/**
+ * Local-only workspace identity. There is no login gate and no Supabase
+ * session: this app intentionally stores one private workspace on the
+ * machine running Next.js.
+ */
+const LOCAL_WORKSPACE_USER = {
+  id: "00000000-0000-4000-8000-000000000001",
+  email: "local@clause.local",
+  name: "Local workspace",
   image: null,
-};
+} as const;
 
-let devUserEnsured = false;
-
-async function ensureDevUser() {
-  if (devUserEnsured) return;
+export async function getSessionUser(): Promise<SessionUser | null> {
   try {
     await db
       .insert(users)
-      .values({
-        id: DEV_USER.id,
-        email: DEV_USER.email,
-        name: DEV_USER.name,
-        image: DEV_USER.image,
-      })
+      .values(LOCAL_WORKSPACE_USER)
       .onConflictDoUpdate({
         target: users.id,
-        set: { email: DEV_USER.email, name: DEV_USER.name },
+        set: {
+          email: LOCAL_WORKSPACE_USER.email,
+          name: sql`coalesce(excluded.name, ${users}.name)`,
+          image: LOCAL_WORKSPACE_USER.image,
+        },
       });
-    devUserEnsured = true;
-  } catch (err) {
-    console.error("Failed to ensure dev user in database:", err);
-  }
-}
 
-/**
- * Resolves the signed-in user from the Supabase session and ensures a
- * matching row exists in our `users` table (id = auth.users.id).
- * If no session is found, falls back to DEV_USER so the dashboard is directly accessible.
- */
-export async function getSessionUser(): Promise<SessionUser | null> {
-  let supabase;
-  try {
-    supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    // Local development has no external scheduler, so sweep on access as
+    // well as through the daily cleanup endpoint.
+    await purgeExpiredDocuments(LOCAL_WORKSPACE_USER.id).catch(() => undefined);
 
-    if (user?.email && user.id) {
-      const email = user.email;
-      const name =
-        (user.user_metadata?.["full_name"] as string | undefined) ??
-        (user.user_metadata?.["name"] as string | undefined) ??
-        null;
-      const image =
-        (user.user_metadata?.["avatar_url"] as string | undefined) ?? null;
-
-      await db
-        .insert(users)
-        .values({ id: user.id, email, name, image })
-        .onConflictDoUpdate({
-          target: users.id,
-          set: { email, name: sql`coalesce(excluded.name, ${users}.name)`, image },
-        });
-
-      return { id: user.id, email, name, image };
-    }
+    return LOCAL_WORKSPACE_USER;
   } catch {
-    // Auth unconfigured or errored — fallback to DEV_USER
+    // Database failures remain a safe denial for API routes.
+    return null;
   }
-
-  await ensureDevUser();
-  return DEV_USER;
 }

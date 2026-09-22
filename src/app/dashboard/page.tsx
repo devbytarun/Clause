@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { SignOutButton } from "@/components/auth/sign-out-button";
 import { UploadDropzone } from "@/components/dashboard/upload-dropzone";
 import { DocumentList } from "@/components/dashboard/document-list";
 import { getSessionUser } from "@/lib/session";
@@ -13,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const user = await getSessionUser();
-  if (!user) redirect("/login");
+  if (!user) throw new Error("Local workspace database is unavailable");
 
   const list = await listDocumentsForUser(user.id);
   const totalDocs = list.items.length;
@@ -45,9 +43,9 @@ export default async function DashboardPage() {
               <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#F04D35] text-[10px] font-bold text-[#FFFDF7]">
                 {user.email.charAt(0).toUpperCase()}
               </span>
-              <span className="max-w-[130px] truncate font-medium text-[#171714] sm:max-w-xs">{user.email}</span>
+              <span className="max-w-[130px] truncate font-medium text-[#171714] sm:max-w-xs">Local workspace</span>
             </div>
-            <SignOutButton />
+            <span className="text-[11px] font-mono text-[#646158]">Saved on this machine</span>
           </div>
         </div>
       </header>

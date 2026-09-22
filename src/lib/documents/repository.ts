@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   analyses,
@@ -56,6 +56,20 @@ export async function findDuplicateForUser(
     )
     .limit(1);
   return rows[0] ?? null;
+}
+
+export async function countActiveDocumentsForUser(userId: string): Promise<number> {
+  const rows = await db
+    .select({ count: count() })
+    .from(documents)
+    .where(
+      and(
+        eq(documents.userId, userId),
+        isNull(documents.deletedAt),
+        inArray(documents.status, ["queued", "extracting", "analyzing"])
+      )
+    );
+  return Number(rows[0]?.count ?? 0);
 }
 
 export async function getDocumentForUser(

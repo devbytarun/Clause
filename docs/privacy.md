@@ -4,19 +4,20 @@ Honest disclosure as implemented (mirrors the in-app `/privacy` page).
 
 ## Data flow
 
-> Your document is uploaded to our server, stored in cloud storage,
-> processed for text extraction, and sent to Google's Gemini API for
-> analysis. Results are stored in our database. It is not a private
-> local tool.
+> Your document is uploaded to the machine running Clause, stored in its
+> `.storage/` directory, processed for text extraction, and sent to Google's
+> Gemini API for analysis. Results are stored in the configured PostgreSQL
+> database. It is a local-storage MVP, but it is not a zero-cloud tool because
+> Gemini receives document text and grounded chat context.
 
 | Question | Answer (as built) |
 |---|---|
 | Collected at upload | the PDF bytes + filename |
-| Stored durably | PDF (private bucket), filename, size/hash/mime, extracted per-page text, analysis JSONB, chat messages + page-badge sources, account email/name/image from Supabase |
+| Stored durably | PDF in `.storage/`, filename, size/hash/mime, extracted per-page text, analysis JSONB, chat messages + page-badge sources, and one local workspace profile |
 | Sent to Gemini | full extracted document text with page markers; system instructions; chat history window + question. Nothing else; no cross-user mixing |
 | Logs | event metadata only: IDs, sizes, durations, error codes, token counts. Never document text, filenames, prompts, or messages |
-| Retention | until user deletes (chat needs the text); no automatic purge of active accounts |
-| Deletion | soft-delete hides instantly; nightly cron removes the storage object then hard-deletes rows (cascade) |
+| Retention | seven days from upload, or until manual deletion |
+| Deletion | retention sweep removes the storage object then hard-deletes rows (cascade); local access also triggers a sweep when no scheduler is available |
 | Backups | provider-managed backups may retain deleted rows for a plan-dependent window — disclosed on /privacy with an explicit "verify before relying on a figure" note |
 | Scanned PDFs | citations cannot be verified against a text layer; labeled "AI-identified, not independently verified" everywhere |
 

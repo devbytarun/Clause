@@ -3,20 +3,17 @@
 Every entry: what we chose · why · alternatives considered · why
 rejected · trade-off accepted · reconsider-trigger.
 
-## D-001 — Supabase Auth replaces Auth.js v5 (2026-08-26)
+## D-001 — Local workspace replaces hosted authentication (2026-09-22)
 
-- **What:** identity, magic links, Google OAuth, sessions via Supabase
-  Auth (`@supabase/ssr`); app DB mirrors profile rows keyed by
-  `auth.users.id`.
-- **Why:** operator setup drops from "Google Cloud OAuth console + SMTP
-  credentials" to "flip toggles in Supabase dashboard"; free tier.
-- **Alternatives:** Auth.js v5 + Drizzle adapter (original blueprint) —
-  fully built first (commit `ece6218`), then replaced; custom JWT —
-  hand-rolled crypto liability.
-- **Trade-offs:** sessions live outside the app DB (in-app instant
-  revocation lost); identifier coupling to Supabase.
-- **Reconsider:** need DB-session revocation semantics, custom auth
-  flows, or self-hosted identity.
+- **What:** one fixed local workspace identity backed by the application
+  database; no login or hosted identity provider.
+- **Why:** the MVP is designed for one private machine and needs no account
+  onboarding or third-party identity surface.
+- **Alternatives:** Supabase Auth or Auth.js — unnecessary complexity until
+  sharing or multi-user hosting is required.
+- **Trade-offs:** access to the machine is the security boundary; it is not a
+  multi-user hosted product.
+- **Reconsider:** sharing, collaboration, or hosted accounts are added.
 
 ## D-002 — All-free-tier launch posture (2026-08-26)
 
@@ -62,19 +59,17 @@ rejected · trade-off accepted · reconsider-trigger.
 - **Trade-offs:** row churn on hot keys; single-region counter.
 - **Reconsider:** sustained high RPS or multi-region.
 
-## D-006 — Supabase Storage REST adapter without vendor SDK (2026-08-26)
+## D-006 — Local filesystem storage adapter (2026-09-22)
 
-- **What:** plain-fetch adapter for upload/download/remove/sign.
-- **Why:** one less dependency; trivially mockable; surface exactly the
-  four operations used.
-- **Alternatives:** supabase-js storage client.
-- **Trade-offs:** no LIST/lifecycle coverage (orphan sweep manual).
-- **Reconsider:** need object listing, resumable uploads, or CDN
-  transforms.
+- **What:** filesystem adapter for upload/download/remove/sign.
+- **Why:** document bytes stay on the machine running Clause and the adapter
+  is small and trivially mockable.
+- **Alternatives:** S3, Supabase Storage, or Vercel Blob.
+- **Trade-offs:** the host needs persistent disk and a manual backup policy.
+- **Reconsider:** multi-user hosted deployment or object lifecycle tooling.
 
 ## Historical note
 
 The project originally implemented Auth.js v5 end-to-end (Phase 1). The
 working swap commit and the dropped-tables migration (`0001`) preserve
 that history honestly rather than rewriting it.
-

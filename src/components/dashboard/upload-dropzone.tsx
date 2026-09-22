@@ -82,7 +82,7 @@ export function UploadDropzone() {
               Privacy & Document Processing Notice
             </h4>
             <p className="text-[13px] leading-relaxed text-[#646158] mb-3.5">
-              Agreements are parsed through private, secure infrastructure to extract page-level citations, detect omissions, and generate redlines. You can request complete hard-purge of stored files at any time.
+              Agreements are saved in this app&apos;s local storage, then extracted for page-level citations and AI analysis. Delete a document any time to remove its local file and results.
             </p>
             <label className="inline-flex items-center gap-2.5 text-[13px] font-semibold text-[#171714] cursor-pointer hover:text-[#F04D35] transition-colors">
               <input

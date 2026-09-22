@@ -9,6 +9,7 @@ import {
 import { db } from "@/db";
 import { conversations, documents } from "@/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
+import { getEnv } from "@/lib/env";
 
 type Params = { documentId: string };
 
@@ -63,7 +64,11 @@ export const POST = withAuth<Params>(async (req, ctx) => {
   }
 
   // Per-user chat rate limit (blueprint §18): 12 msgs/min.
-  const rl = await consumeRateLimit(`chat:${ctx.userId}`, 12, 60);
+  const rl = await consumeRateLimit(
+    `chat:${ctx.userId}`,
+    getEnv().RATE_LIMIT_CHAT_PER_MINUTE,
+    60
+  );
   if (!rl.allowed) {
     return Response.json(
       {

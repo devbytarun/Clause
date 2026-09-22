@@ -95,6 +95,18 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Keep horizontally scrollable controls usable without exposing browser chrome. */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+  height: 0;
+  width: 0;
+}
+
 .font-display,
 .display-font {
   font-family: var(--font-display);

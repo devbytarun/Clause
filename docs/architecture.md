@@ -2,12 +2,12 @@
 
 ```
 Browser (Next.js React, server components + client islands)
-  │  session cookie (Supabase auth, httpOnly via @supabase/ssr)
+  │  same-origin requests to one local workspace
   ▼
 Next.js Route Handlers / Server Components (Node runtime)
-  ├── withAuth wrapper ──── session → userId; origin check on mutations
-  ├── DocumentsService ──── Supabase Storage REST (private bucket,
-  │                          signed URLs ≤ 15 min)
+  ├── withAuth wrapper ──── fixed local workspace → userId; origin check
+  ├── DocumentsService ──── local filesystem (`.storage/`, signed URLs
+  │                          ≤ 15 min)
   ├── DocumentProcessor ─── unpdf per-page text ──► document_pages
   ├── ChatService ─┐
   │   ContextBuilder├────► GeminiGateway (@google/genai, server-only,
@@ -17,7 +17,7 @@ Next.js Route Handlers / Server Components (Node runtime)
                                    ▼
                             Google Gemini API
 
-Neon Postgres: users · documents · document_pages · analyses ·
+PostgreSQL: users · documents · document_pages · analyses ·
 conversations · messages · rate_limit_windows
 ```
 
@@ -36,9 +36,9 @@ Rules enforced in code:
 |---|---|---|---|---|---|---|
 | Framework | Next.js 16 App Router + TS | one deployable; RSC for server-heavy pages; SSE-capable route handlers | FastAPI + React SPA | two deployables, slower iteration | framework churn risk | a second product surface (mobile app) needs a standalone API |
 | UI | Tailwind v4 + hand-rolled components | full design control (sunset theme); no component-library lock-in | shadcn/ui, MUI | generic look; extra deps | more bespoke CSS to maintain | team grows and consistency needs enforcement tooling |
-| DB | Neon Postgres + Drizzle | serverless-friendly, branching, typed SQL without heavy ORM | Prisma | heavier runtime, weaker raw-SQL ergonomics here | Drizzle relation API is thinner than Prisma's | complex multi-level relations appear |
-| Auth | **Supabase Auth** (D-001) | hosted magic links/OAuth free tier; zero credential setup for operator | Auth.js v5 (original blueprint) | required operator-side OAuth console/SMTP setup | identity lives outside app DB (mirrored by id) | need custom auth flows or self-hosting identity |
-| Storage | Supabase Storage REST | same project as auth; signed URLs; hard-delete API | S3 direct, Vercel Blob | IAM setup; no SQL-adjacent management | REST adapter is hand-rolled (no official SDK) | object lifecycle policies or >5 GB objects needed |
+| DB | PostgreSQL + Drizzle | portable, typed SQL, and simple local deployment | SQLite | weaker concurrent processing semantics | one database service remains required | single-file local mode becomes a priority |
+| Auth | Fixed local workspace | no account setup and no identity leaves the machine | Hosted auth | unnecessary for the single-user MVP | local machine access is the security boundary | multi-user sharing or hosted accounts are added |
+| Storage | Local filesystem adapter | keeps document bytes on the host and is easy to inspect/delete | S3, Vercel Blob | hosted storage changes the privacy posture and adds setup | persistent disk management is required | multi-user hosted deployment becomes primary |
 | AI SDK | `@google/genai` pinned `^2 <3` | current GA SDK; structured output via `responseJsonSchema` | legacy `@google/generative-ai` | deprecated | 3.x breaking changes must be adopted deliberately | announced deprecations land |
 | Extraction | `unpdf` | pdf.js build that works serverless, per-page text, pure JS | poppler/native | native deps are an RCE/ops surface | pdf.js fidelity limits (documented) | extraction quality regresses on target corpus |
 | Validation | Zod v4 everywhere | one schema language across API/AI/env | io-ts, Valibot | smaller ecosystems | bundle size | n/a |

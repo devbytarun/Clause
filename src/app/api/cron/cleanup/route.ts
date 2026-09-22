@@ -4,6 +4,7 @@ import { documents } from "@/db/schema";
 import { getStoragePath } from "@/lib/documents/repository";
 import { getStorage } from "@/lib/storage";
 import { pruneRateWindows } from "@/lib/rate-limit";
+import { purgeExpiredDocuments } from "@/lib/documents/retention";
 
 /**
  * Nightly cleanup cron (blueprint §14/§22): hard-deletes soft-deleted
@@ -38,6 +39,10 @@ export async function GET(req: Request) {
 
   const purged: string[] = [];
   const failed: Array<{ id: string; reason: string }> = [];
+
+  const expired = await purgeExpiredDocuments();
+  purged.push(...expired.purged);
+  failed.push(...expired.failed);
 
   const rows = await db
     .select({ id: documents.id })

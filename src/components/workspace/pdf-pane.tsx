@@ -60,7 +60,7 @@ export function PdfPane({
 
   return (
     <div className="flex h-full flex-col rounded-[10px] border border-[#D8D2C6] bg-[#FFFDF7] overflow-hidden shadow-xs">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#D8D2C6] bg-[#F3F0E8]/50 px-3.5 py-2">
+      <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 border-b border-[#D8D2C6] bg-[#F3F0E8]/50 px-2.5 py-2 sm:flex sm:flex-wrap sm:justify-between sm:px-3.5">
         <div className="flex items-center gap-1.5">
           <button
             type="button"
@@ -85,12 +85,22 @@ export function PdfPane({
             →
           </button>
         </div>
-        <div className="w-48 sm:w-56">
+        <div className="min-w-0 sm:w-56">
           <PageSearch documentId={documentId} onJump={(p) => setPage(p)} />
         </div>
+        {signedUrl && (
+          <a
+            href={`${signedUrl}#page=${page}`}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-[4px] border border-[#D8D2C6] bg-[#FFFDF7] px-2.5 py-1.5 font-mono text-[10px] font-bold text-[#171714] no-underline hover:bg-[#F3F0E8]"
+          >
+            Open PDF
+          </a>
+        )}
       </div>
 
-      <div className="relative flex-1 min-h-[480px] bg-[#FFFDF7]">
+      <div className="relative min-h-0 flex-1 bg-[#FFFDF7] lg:min-h-[480px]">
         {error && (
           <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
             <p className="text-[13px] text-[#646158]">{error}</p>
@@ -114,12 +124,27 @@ export function PdfPane({
           </div>
         )}
         {!error && signedUrl && (
-          <iframe
+          <object
             key={`${signedUrl}#${page}`}
-            title={`PDF viewer — page ${page}`}
-            src={`${signedUrl}#page=${page}`}
-            className="h-full w-full border-0 bg-[#FFFDF7]"
-          />
+            data={`${signedUrl}#page=${page}`}
+            type="application/pdf"
+            aria-label={`PDF viewer — page ${page}`}
+            className="h-full w-full bg-[#FFFDF7]"
+          >
+            <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
+              <p className="text-[13px] text-[#646158]">
+                This browser cannot render the PDF inline.
+              </p>
+              <a
+                href={`${signedUrl}#page=${page}`}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-[6px] bg-[#F04D35] px-4 py-2 font-mono text-[11px] font-bold text-[#FFFDF7] no-underline hover:bg-[#C93625]"
+              >
+                Open PDF
+              </a>
+            </div>
+          </object>
         )}
       </div>
     </div>

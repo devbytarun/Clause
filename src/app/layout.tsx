@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
-import { AuthHashHandler } from "@/components/auth/auth-hash-handler";
 import "./globals.css";
 
 const inter = Inter({
@@ -27,7 +26,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans`}>
-        <AuthHashHandler />
         {children}
       </body>
     </html>

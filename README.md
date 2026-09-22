@@ -28,8 +28,9 @@ document before they sign it.
   mean, what is uncertain, and what the reader can clarify.
 - **Side-by-side workspace** — read the PDF while reviewing findings and jump
   directly to cited pages.
-- **Private document lifecycle** — authenticated access, ownership checks,
-  signed file URLs, retryable processing, and document deletion.
+- **Local document lifecycle** — one private workspace, ownership checks,
+  signed file URLs, retryable processing, rate limits, manual deletion, and
+  automatic deletion after seven days.
 
 ## How it works
 
@@ -56,12 +57,12 @@ to display.
 | Area | What Clause provides |
 |---|---|
 | Documents | PDF uploads up to 20 MB and 120 pages |
-| Analysis | Overview, highlights, positives, concerns, omissions, and questions |
+| Analysis | Overview, highlights, positives, concerns, and questions |
 | Evidence | Exact, fuzzy, corrected-page, and unverified citation states |
 | Viewer | Signed PDF viewer, page navigation, search, and citation deep-links |
 | Q&A | Streaming answers grounded in the current document |
-| Accounts | Supabase magic-link authentication and optional Google OAuth |
-| Storage | Local development adapter or private Supabase Storage |
+| Accounts | No login required; one local workspace on the host machine |
+| Storage | Local filesystem under `.storage/` plus PostgreSQL metadata; 7-day retention |
 | Operations | Upload progress, processing status, retry, duplicate detection, and delete |
 
 ## Technology
@@ -69,7 +70,7 @@ to display.
 - Next.js 16 App Router and React 19
 - TypeScript
 - PostgreSQL with Drizzle ORM
-- Supabase Auth and optional Supabase Storage
+- Local filesystem storage
 - Gemini through `@google/genai`
 - `unpdf` for deterministic page-level PDF extraction
 - Tailwind CSS 4 and Lucide icons
@@ -88,8 +89,13 @@ Configure the required values in `.env.local`:
 
 - `DATABASE_URL`
 - `AUTH_SECRET` (at least 32 characters)
-- Supabase URL, anon key, and service key
 - `GOOGLE_GENERATIVE_AI_API_KEY`
+
+No account, email, OTP, Google provider, or Supabase project is needed. PDFs
+are saved under `.storage/` and metadata is stored in PostgreSQL. This is a
+server-side local workspace, not browser-only storage: refreshing the browser
+does not lose documents. Run it on a private machine with a persistent disk;
+Vercel's filesystem is ephemeral and is not suitable for this storage mode.
 
 Then run the database and app:
 
@@ -120,7 +126,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ```text
 src/app/                         Routes, pages, and API handlers
-src/components/                  Auth, dashboard, viewer, analysis, and chat UI
+src/components/                  Dashboard, viewer, analysis, and chat UI
 src/lib/pipeline/                Upload processing and citation validation
 src/lib/chat/                    Context assembly and grounded Q&A
 src/lib/gemini/                  Model gateway and retry behavior
@@ -133,11 +139,14 @@ docs/                             Product, architecture, privacy, and deployment
 
 ## Privacy and safety
 
-Clause is designed for sensitive documents, but it still uses cloud
-infrastructure and an external AI provider. The product discloses this during
-upload consent. Documents are access-controlled, file URLs are signed, and
-deletion removes the document from the active workspace before storage cleanup
-completes.
+Clause stores PDFs on the local filesystem and sends extracted text and
+document-grounded chat context to the external AI provider configured by
+`GOOGLE_GENERATIVE_AI_API_KEY`. The product discloses this during upload
+consent. Local storage protects data from being stored in a separate file
+hosting service, but it is not a guarantee that content never leaves the
+machine. File URLs are signed, documents are deleted after seven days, and
+manual deletion removes the document from the active workspace and local
+storage immediately.
 
 The analysis system also avoids numeric legal-risk scores, enforceability
 verdicts, and unsupported claims about applicable law.
@@ -149,6 +158,8 @@ verdicts, and unsupported claims about applicable law.
 - English is the primary supported language.
 - DOCX, image uploads, multi-document comparison, sharing, and collaboration
   are not part of the current MVP.
+- Gemini is still an external processor. A fully private deployment requires a
+  local AI model or another processor with an appropriate no-training policy.
 
 See the full [documentation index](./docs/index.md), including the
 [product scope](./docs/product.md), [architecture](./docs/architecture.md),

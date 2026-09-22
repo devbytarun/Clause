@@ -10,7 +10,6 @@ import { errorMessage } from "@/lib/error-codes";
 import { AnalysisTabs } from "@/components/workspace/analysis-tabs";
 import { PdfPane } from "@/components/workspace/pdf-pane";
 import { ConcernItem } from "@/components/workspace/concern-item";
-import { OmissionList } from "@/components/workspace/omission-list";
 import { EvidenceQuote } from "@/components/workspace/evidence-quote";
 import {
   DocumentActions,
@@ -66,7 +65,6 @@ export default async function WorkspacePage({ params, searchParams }: PageProps)
     ? {
         highlights: parsedAnalysis.data.highlights.length,
         concerns: parsedAnalysis.data.concerns.length,
-        omissions: parsedAnalysis.data.omissions?.length ?? 0,
         positives: parsedAnalysis.data.positive_points.length,
       }
     : undefined;
@@ -126,9 +124,6 @@ export default async function WorkspacePage({ params, searchParams }: PageProps)
             )}
           </div>
         ),
-        omissions: (
-          <OmissionList omissions={parsedAnalysis.data.omissions ?? []} />
-        ),
         highlights: (
           <div className="space-y-3">
             {parsedAnalysis.data.highlights.length === 0 ? (
@@ -175,19 +170,20 @@ export default async function WorkspacePage({ params, searchParams }: PageProps)
     <main className="flex min-h-screen flex-col bg-[#F3F0E8] text-[#171714] font-sans antialiased">
       {/* Top Header — Stretched edge-to-edge */}
       <header className="sticky top-0 z-20 border-b border-[#D8D2C6] bg-[#FFFDF7] shadow-2xs">
-        <div className="flex h-14 w-full items-center justify-between px-5 sm:px-8">
-          <div className="flex items-center gap-3.5 min-w-0">
+        <div className="flex min-h-14 w-full flex-wrap items-center justify-between gap-x-3 gap-y-2 px-3 py-2 sm:h-14 sm:flex-nowrap sm:px-8 sm:py-0">
+          <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3.5">
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-1.5 font-mono text-[12px] font-bold text-[#646158] hover:text-[#171714] no-underline transition-colors"
+              aria-label="Back to dashboard"
+              className="inline-flex shrink-0 items-center gap-1.5 font-mono text-[12px] font-bold text-[#646158] hover:text-[#171714] no-underline transition-colors"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
-              <span>Dashboard</span>
+              <span className="hidden sm:inline">Dashboard</span>
             </Link>
-            <span className="h-4 w-px bg-[#D8D2C6]" />
-            <div className="flex items-center gap-2 min-w-0">
+            <span className="hidden h-4 w-px bg-[#D8D2C6] sm:block" />
+            <div className="flex min-w-0 items-center gap-2">
               <FileText className="h-4 w-4 text-[#F04D35] shrink-0" />
-              <h1 className="truncate font-sans text-sm font-semibold tracking-tight text-[#171714] sm:max-w-md lg:max-w-lg" title={doc.originalFilename}>
+              <h1 className="max-w-[38vw] truncate font-sans text-sm font-semibold tracking-tight text-[#171714] sm:max-w-md lg:max-w-lg" title={doc.originalFilename}>
                 {doc.originalFilename}
               </h1>
               {doc.pageCount && (
@@ -198,15 +194,15 @@ export default async function WorkspacePage({ params, searchParams }: PageProps)
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 shrink-0">
-            <StatusPoller status={doc.status} />
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2.5">
+            <span className="max-[420px]:hidden"><StatusPoller status={doc.status} /></span>
             <DocumentActions documentId={doc.id} status={doc.status} />
           </div>
         </div>
       </header>
 
       {/* Main Workspace Area — Stretched across viewport */}
-      <div id="page-panel" className="w-full flex-1 px-4 sm:px-6 lg:px-8 py-4 flex flex-col">
+      <div id="page-panel" className="flex w-full flex-1 flex-col px-3 py-3 sm:px-6 sm:py-4 lg:px-8">
         {!sections && doc.status !== "ready" && doc.status !== "failed" && (
           <div className="rounded-[10px] border border-[#D8D2C6] bg-[#FFFDF7] p-10 text-center shadow-xs">
             <StatusPoller status={doc.status} />
@@ -228,9 +224,9 @@ export default async function WorkspacePage({ params, searchParams }: PageProps)
         )}
 
         {doc.status === "ready" && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1 items-stretch">
+          <div className="grid min-h-0 flex-1 grid-cols-1 items-stretch gap-4 sm:gap-5 lg:grid-cols-12">
             {/* Left Column: PDF Viewer */}
-            <div className="lg:col-span-6 flex flex-col h-[calc(100vh-100px)] min-h-[580px]">
+            <div className="flex h-[48vh] min-h-[320px] max-h-[560px] min-w-0 flex-col sm:h-[55vh] lg:col-span-6 lg:h-[calc(100vh-100px)] lg:min-h-[580px]">
               <PdfPane
                 documentId={doc.id}
                 initialPage={
@@ -243,7 +239,7 @@ export default async function WorkspacePage({ params, searchParams }: PageProps)
             </div>
 
             {/* Right Column: Analysis Tabs & Chat */}
-            <div className="lg:col-span-6 flex flex-col h-[calc(100vh-100px)] min-h-[580px]">
+            <div className="flex h-[calc(100vh-5.5rem)] min-h-[560px] min-w-0 flex-col lg:col-span-6 lg:h-[calc(100vh-100px)] lg:min-h-[580px]">
               {sections ? (
                 <AnalysisTabs sections={sections} counts={counts} defaultTab="concerns" />
               ) : (

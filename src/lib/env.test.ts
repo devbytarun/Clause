@@ -14,7 +14,8 @@ describe("parseEnv", () => {
     expect(env.GEMINI_CHAT_MODEL).toBe("gemini-3.6-flash");
     expect(env.APP_URL).toBe("http://localhost:3000");
     expect(env.SIGNED_URL_TTL_SECONDS).toBe(900);
-    expect(env.STORAGE_BUCKET).toBe("docs-prod");
+    expect(env.STORAGE_DRIVER).toBe("local");
+    expect(env.DOCUMENT_RETENTION_DAYS).toBe(7);
     expect(env.RATE_LIMIT_UPLOADS_PER_HOUR).toBe(10);
     expect(env.RATE_LIMIT_CHAT_PER_MINUTE).toBe(12);
   });

@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   Check,
   ChevronDown,
@@ -10,12 +9,9 @@ import {
   ArrowRight,
   Menu,
   X,
-  ArrowUpRight,
 } from "lucide-react";
 
 export default function LandingPage() {
-  const router = useRouter();
-
   // Navigation scroll state
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -23,11 +19,6 @@ export default function LandingPage() {
 
   // Evidence interactive tab
   const [activeEvidenceTab, setActiveEvidenceTab] = useState<"citation" | "tripartite" | "chat">("citation");
-
-  // Document analysis input state
-  const [email, setEmail] = useState("");
-  const [formState, setFormState] = useState<"idle" | "loading" | "success" | "error">("idle");
-  const [errorMessage, setErrorMessage] = useState("");
 
   // FAQ open/close states
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
@@ -53,27 +44,6 @@ export default function LandingPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [mobileMenuOpen]);
 
-  // Handle form submission
-  const handleFormSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMessage("");
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email || !emailRegex.test(email)) {
-      setFormState("error");
-      setErrorMessage("Use a valid work email to begin document analysis.");
-      return;
-    }
-
-    setFormState("loading");
-    setTimeout(() => {
-      setFormState("success");
-      setTimeout(() => {
-        router.push("/dashboard");
-      }, 700);
-    }, 800);
-  };
-
   const faqItems = [
     {
       question: "Is Clause a substitute for qualified legal counsel?",
@@ -89,7 +59,7 @@ export default function LandingPage() {
     },
     {
       question: "What happens to uploaded agreements and confidential text?",
-      answer: "Your documents are processed through private encrypted storage. Soft-deletions in the interface take effect immediately, and underlying files and database rows are purged on a nightly cleanup cycle."
+      answer: "Your PDFs are saved in the local .storage folder of this app. Deleting a document removes its file, extracted pages, analysis, and chat history."
     }
   ];
 
@@ -400,7 +370,7 @@ export default function LandingPage() {
                 href="/dashboard"
                 className="inline-flex h-[42px] items-center justify-center rounded-[6px] bg-[#F04D35] px-5 text-[13px] font-bold text-[#FFFDF7] transition-all hover:bg-[#C93625] active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3157D5] no-underline shrink-0"
               >
-                Test document workspace
+                Open document workspace
               </Link>
             </div>
 
@@ -854,7 +824,7 @@ export default function LandingPage() {
                   href="/dashboard"
                   className="inline-flex h-[40px] items-center justify-center rounded-[6px] bg-[#F04D35] px-5 text-[13px] font-bold text-[#FFFDF7] transition-all hover:bg-[#C93625] active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3157D5] no-underline"
                 >
-                  Read analysis example
+                  See the workspace
                 </Link>
               </div>
             </div>
@@ -872,65 +842,25 @@ export default function LandingPage() {
                 Start analyzing your next agreement.
               </h2>
               <p className="mt-3 text-[15px] leading-[1.6] text-[#646158]">
-                No credit card required. Free informational analysis with verified citations. Hard data purge on request.
+                No account or credit card required. PDFs stay in this app&apos;s local storage while AI analysis is protected by usage limits.
               </p>
 
-              {/* Document Analysis Launch Form */}
-              <form onSubmit={handleFormSubmit} className="mt-6" noValidate>
-                <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
-                  <div className="flex-1">
-                    <label htmlFor="work-email" className="block text-[13px] font-semibold text-[#171714] mb-1">
-                      Work email address
-                    </label>
-                    <input
-                      id="work-email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="you@company.com"
-                      required
-                      aria-required="true"
-                      aria-invalid={formState === "error"}
-                      aria-describedby="email-feedback"
-                      className="h-[46px] w-full rounded-[6px] border border-[#D8D2C6] bg-[#FFFDF7] px-3.5 text-[14px] text-[#171714] placeholder-[#989388] transition-all focus:outline-none focus:ring-2 focus:ring-[#3157D5] focus:border-[#3157D5]"
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={formState === "loading" || formState === "success"}
-                    className="h-[46px] sm:w-auto w-full px-6 rounded-[6px] bg-[#F04D35] text-[14px] font-bold text-[#FFFDF7] transition-all hover:bg-[#C93625] active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3157D5] disabled:bg-[#FFFDF7] disabled:text-[#989388] disabled:border disabled:border-[#D8D2C6] shrink-0"
-                  >
-                    {formState === "loading" ? "Analyzing..." : "Start analyzing your next agreement"}
-                  </button>
-                </div>
-
-                {/* Feedback message */}
-                <div id="email-feedback" className="mt-2 min-h-[20px]">
-                  {formState === "error" && (
-                    <p className="text-[13px] font-medium text-[#C53B36]">
-                      {errorMessage}
-                    </p>
-                  )}
-                  {formState === "success" && (
-                    <p className="text-[13px] font-semibold text-[#2E7D4F]">
-                      Redirecting to your document workspace...
-                    </p>
-                  )}
-                </div>
-
-                <p className="text-[12px] text-[#989388] mt-1">
-                  Informational analysis only — not legal advice. Always review original agreements with qualified counsel.
-                </p>
-              </form>
+              <Link
+                href="/dashboard"
+                className="mt-6 inline-flex h-[46px] items-center justify-center rounded-[6px] bg-[#F04D35] px-6 text-[14px] font-bold text-[#FFFDF7] transition-all hover:bg-[#C93625] active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3157D5] no-underline"
+              >
+                Open local workspace
+              </Link>
+              <p className="mt-3 text-[12px] text-[#989388]">
+                Informational analysis only — not legal advice. Always review original agreements with qualified counsel.
+              </p>
 
               <div className="mt-5 border-t border-[#D8D2C6] pt-4">
                 <Link
                   href="/dashboard"
-                  className="text-[14px] font-semibold text-[#3157D5] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3157D5] no-underline inline-flex items-center gap-1"
+                  className="text-[14px] font-semibold text-[#3157D5] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3157D5] no-underline"
                 >
-                  Or open the document workspace directly
-                  <ArrowUpRight className="h-4 w-4" />
+                  Your PDFs stay on this machine
                 </Link>
               </div>
 
@@ -1030,7 +960,7 @@ export default function LandingPage() {
               <ul className="space-y-2 text-[13px]">
                 <li><Link href="/privacy" className="hover:text-[#171714] no-underline">Privacy Posture</Link></li>
                 <li><Link href="/terms" className="hover:text-[#171714] no-underline">Terms of Service</Link></li>
-                <li><span className="text-[#989388]">Encrypted Private Storage</span></li>
+                <li><span className="text-[#989388]">Local PDF Storage</span></li>
                 <li><span className="text-[#989388]">Informational Analysis Only</span></li>
               </ul>
             </div>

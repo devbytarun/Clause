@@ -9,24 +9,37 @@ const SECTIONS: { heading: string; body: React.ReactNode }[] = [
     body: (
       <>
         <p>
-          Your document is uploaded to our server, stored in cloud storage,
-          processed for text extraction, and sent to Google&apos;s Gemini API
-          for analysis. Results are stored in our database. It is not a
-          private local tool.
+          Your document is saved in the local <code>.storage</code> folder of
+          the machine running Clause, processed for text extraction, and sent
+          to Google&apos;s Gemini API for analysis. Results are stored in the
+          PostgreSQL database configured for this deployment. This is
+          server-side local storage, not browser-only storage.
         </p>
       </>
+    ),
+  },
+  {
+    heading: "Privacy boundary",
+    body: (
+      <p>
+        Local filesystem storage means the PDF is not placed in a separate
+        file-hosting service, but it does not mean that the content never
+        leaves the machine. Extracted text and document-grounded chat context
+        are sent to Gemini. A fully private deployment requires a local AI
+        model or an AI provider with a suitable no-training policy.
+      </p>
     ),
   },
   {
     heading: "What we collect and store",
     body: (
       <ul className="list-disc space-y-1 pl-5">
-        <li>The PDF file itself (private cloud-storage bucket)</li>
+        <li>The PDF file itself (local filesystem storage)</li>
         <li>The filename you uploaded it with</li>
         <li>File size, type, and content hash (for duplicate detection)</li>
         <li>Extracted per-page text (used to verify every AI citation)</li>
         <li>Your analysis results and chat conversation messages</li>
-        <li>Your account email from Supabase authentication</li>
+        <li>No account email — authentication is disabled</li>
       </ul>
     ),
   },
@@ -68,13 +81,12 @@ const SECTIONS: { heading: string; body: React.ReactNode }[] = [
     heading: "Deletion",
     body: (
       <p>
-        Deleting a document hides it immediately and permanently removes the
-        stored file, its extracted pages, analysis, and chat history.
-        Encrypted database backups may retain deleted data for a limited
-        period after deletion; the retention window for this deployment is
-        set by the database provider plan (verify before relying on an exact
-        figure). Storage objects are deleted immediately and are not
-        versioned.
+        Documents are automatically permanently deleted seven days after
+        upload. The sweep removes the stored file, extracted pages, analysis,
+        and chat history. Manual deletion hides a document immediately and
+        removes the same data during the next cleanup operation. Encrypted
+        database backups may retain deleted data for a limited period after
+        deletion; the retention window is set by the database provider plan.
       </p>
     ),
   },
@@ -111,7 +123,7 @@ export default function PrivacyPage() {
       <footer className="border-t border-hairline-soft px-6 py-4">
         <nav className="mx-auto flex max-w-3xl gap-4 text-sm">
           <Link href="/" className="no-underline text-primary">Home</Link>
-          <Link href="/dashboard" className="no-underline text-primary">Dashboard</Link>
+          <Link href="/dashboard" className="no-underline text-primary">Open workspace</Link>
           <Link href="/terms" className="no-underline text-primary">Terms</Link>
         </nav>
       </footer>

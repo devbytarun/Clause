@@ -28,8 +28,8 @@ function originAllowed(req: NextRequest): boolean {
 }
 
 /**
- * Wraps a route handler so it only executes for authenticated users.
- * Resolves the session server-side; client-sent identity is ignored.
+ * Wraps a route handler so every document route has one server-owned
+ * workspace identity. Client-sent user IDs are never trusted.
  */
 export function withAuth<P extends RouteParams = RouteParams>(
   handler: (

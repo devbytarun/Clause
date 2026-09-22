@@ -22,8 +22,8 @@ const citext = customType<{ data: string; driverData: string }>({
 });
 
 /**
- * users.id mirrors Supabase auth.users.id — Supabase Auth owns identity;
- * this table carries app profile data and anchors all FK ownership chains.
+ * The local workspace row carries app profile data and anchors all FK
+ * ownership chains. There is intentionally no external auth provider.
  */
 export const users = pgTable("users", {
   id: uuid("id").primaryKey(),

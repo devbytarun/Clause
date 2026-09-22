@@ -12,7 +12,11 @@ export const GET = withAuth<{ id: string }>(async (_req, ctx) => {
   if (!doc) return jsonError(404, "not_found");
 
   // Signed-URL issuance limit (blueprint §18): 60/h per user.
-  const rl = await consumeRateLimit(`fileurl:${ctx.userId}`, 60, 3600);
+  const rl = await consumeRateLimit(
+    `fileurl:${ctx.userId}`,
+    getEnv().RATE_LIMIT_FILE_URLS_PER_HOUR,
+    3600
+  );
   if (!rl.allowed) return jsonError(429, "rate_limited");
 
   try {

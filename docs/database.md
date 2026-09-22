@@ -5,8 +5,8 @@ Neon Postgres, accessed only through Drizzle with parameterized queries.
 ## Schema (migration history: `src/db/migrations/`)
 
 ```
-users              id uuid PK  (= Supabase auth.users.id, D-001)
-                   email citext UNIQUE (case-insensitive), name, image, created_at
+users              id uuid PK  (= fixed local workspace id)
+                   email citext, name, image, created_at
 
 documents          id uuid PK · user_id FK→users CASCADE
                    original_filename · mime_type CHECK ='application/pdf'
@@ -41,9 +41,8 @@ rate_limit_windows key text · window_start timestamptz · count int ≥0
                    PK(key, window_start)
 ```
 
-Auth.js tables (accounts/sessions/verification_tokens) existed after the
-original Phase 1 and were dropped in migration `0001` when auth moved to
-Supabase (D-001).
+Auth.js and hosted-auth tables from the original prototype were removed. The
+MVP uses one fixed local workspace identity and does not expose a login flow.
 
 ## Decisions and why
 
@@ -53,7 +52,7 @@ Supabase (D-001).
 | `citext` email uniqueness | case-insensitive uniqueness at the DB level | requires `CREATE EXTENSION citext` (statement lives in migration `0000`) | never — portable across Neon |
 | Page text as rows (`document_pages`) | ground truth for citation validation + indexed search | many rows per doc | n/a |
 | Analysis JSONB gated by Zod | flexible payload evolution; invalid payloads cannot be stored (validated before insert) | no relational queries into findings | cross-document analytics demand it |
-| Soft delete + nightly hard purge | instant hide, verifiable true deletion later | deleted data exists between states (privacy page discloses backup caveat) | compliance requires synchronous hard delete |
+| Seven-day retention + hard purge | bounded local retention with a clear privacy promise | old rows/files remain until the next sweep or access | compliance requires synchronous hard delete |
 | No ON DELETE SET NULL anywhere | orphaned analysis/pages are treated as bugs, not features | deletes are all-or-nothing cascades | n/a |
 
 ## Data lifecycle
@@ -61,6 +60,5 @@ Supabase (D-001).
 Upload → row `queued` → conditional claim `extracting` (idempotency guard:
 double-triggered pipeline runs are no-ops) → `analyzing` → `ready`, any
 failure → `failed` + stable `error_code` (storage object kept for retry).
-Delete → `deleted_at = now()` hides instantly → nightly cron removes the
-storage object then hard-deletes the row (cascade wipes pages/analysis/
-conversation/messages).
+Retention or delete → storage object is removed first → document row is
+hard-deleted (cascade wipes pages/analysis/conversation/messages).

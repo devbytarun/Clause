@@ -30,10 +30,12 @@ const serverEnvSchema = z.object({
   ),
   GEMINI_CHAT_MODEL: emptied(z.string().min(1).default("gemini-3.6-flash")),
 
-  STORAGE_DRIVER: emptied(z.enum(["local", "supabase"]).default("local")),
-  SUPABASE_STORAGE_URL: emptied(z.url().optional()),
-  SUPABASE_SERVICE_KEY: emptied(z.string().min(1).optional()),
-  STORAGE_BUCKET: emptied(z.string().min(1).default("docs-prod")),
+  STORAGE_DRIVER: emptied(z.literal("local").default("local")),
+
+  // Documents are automatically hard-deleted after this many days.
+  DOCUMENT_RETENTION_DAYS: emptied(
+    z.coerce.number().int().positive().default(7)
+  ),
 
   SIGNED_URL_TTL_SECONDS: emptied(
     z.coerce.number().int().positive().default(900)
@@ -53,9 +55,6 @@ const serverEnvSchema = z.object({
   ),
 
   SENTRY_DSN: emptied(z.url().optional()),
-
-  NEXT_PUBLIC_SUPABASE_URL: emptied(z.url().optional()),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: emptied(z.string().min(1).optional()),
 
   CRON_SECRET: emptied(z.string().min(16).optional()),
 
@@ -107,26 +106,4 @@ export function requireGeminiApiKey(): string {
     );
   }
   return key;
-}
-
-/**
- * Accepts either the project base (https://xyz.supabase.co) or the full
- * storage REST base (…/storage/v1) and always yields the project base,
- * which the storage adapter extends with /storage/v1 itself.
- */
-export function requireStorageConfig(): {
-  url: string;
-  serviceKey: string;
-  bucket: string;
-} {
-  const rawUrl = process.env.SUPABASE_STORAGE_URL?.trim();
-  const serviceKey = process.env.SUPABASE_SERVICE_KEY?.trim();
-  const bucket = getEnv().STORAGE_BUCKET;
-  if (!rawUrl || !serviceKey) {
-    throw new Error(
-      "SUPABASE_STORAGE_URL and SUPABASE_SERVICE_KEY are required for storage features but are not configured"
-    );
-  }
-  const url = rawUrl.replace(/\/storage\/v1\/?$/i, "").replace(/\/+$/, "");
-  return { url, serviceKey, bucket };
 }
