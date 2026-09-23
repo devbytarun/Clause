@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { errorMessage } from "@/lib/error-codes";
+import { removeCachedPdf } from "@/lib/client/idb-pdf-cache";
 
 export function DocumentActions({
   documentId,
@@ -29,6 +30,7 @@ export function DocumentActions({
         const body = await res.json().catch(() => null);
         throw new Error(body?.error?.message ?? "Delete failed");
       }
+      await removeCachedPdf(documentId).catch(() => undefined);
       router.push("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Delete failed");

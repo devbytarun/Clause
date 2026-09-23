@@ -1,13 +1,9 @@
-import { getStorage } from "@/lib/storage";
 import {
-  claimQueuedDocument,
-  getStoragePath,
-  replacePages,
   updateStatus,
   upsertAnalysis,
+  getPageTexts,
 } from "@/lib/documents/repository";
 import {
-  processDocument,
   DocumentProcessorError,
 } from "@/lib/pipeline/document-processor";
 import { buildPageMarkedText } from "@/lib/pipeline/page-markers";
@@ -19,17 +15,15 @@ import { consumeRateLimit } from "@/lib/rate-limit";
 import { getEnv } from "@/lib/env";
 
 /**
- * Document pipeline service (blueprint §8 steps 6–14).
+ * Analysis-only pipeline for the new in-memory processing flow.
  *
- * Idempotency: a document is claimed via a conditional status UPDATE
- * (queued→extracting), so double-triggered runs are no-ops. Failures
- * set status=failed with a stable error_code; the storage object is
- * kept so the user can retry or delete.
+ * Text extraction now happens inline in the upload route. This function
+ * receives the already-extracted pages and runs only the Gemini analysis
+ * step, storing results in the database.
  */
 
 export interface PipelineDeps {
   transport?: GeminiTransport;
-  storage?: ReturnType<typeof getStorage>;
 }
 
 function buildExtractiveSummary(pagesText: string[]): string {
@@ -38,35 +32,22 @@ function buildExtractiveSummary(pagesText: string[]): string {
   return words.slice(0, 400).join(" ");
 }
 
-export async function runDocumentPipeline(
+/**
+ * Run the Gemini analysis pipeline on a document whose pages are
+ * already extracted and stored in the database.
+ *
+ * Called from after() in the upload route and from the retry route.
+ */
+export async function runAnalysisPipeline(
   documentId: string,
+  pages: { pageNumber: number; text: string }[],
+  isScanned: boolean,
   deps: PipelineDeps = {}
-): Promise<{ claimed: boolean }> {
-  const claimed = await claimQueuedDocument(documentId, "queued");
-  if (!claimed) return { claimed: false };
-
-  const storage = deps.storage ?? getStorage();
-
+): Promise<void> {
   try {
-    const storagePath = await getStoragePath(documentId);
-    if (!storagePath) throw new Error("storage_path_missing");
+    const documentBlock = buildPageMarkedText(pages);
 
-    const object = await storage.download(storagePath);
-
-    await updateStatus(documentId, "extracting");
-    const processed = await processDocument(object.bytes);
-
-    await replacePages(documentId, processed.pages);
-    await updateStatus(documentId, "analyzing", {
-      pageCount: processed.pageCount,
-      charCount: processed.charCount,
-      isScanned: processed.isScanned,
-    });
-
-    const documentBlock = buildPageMarkedText(processed.pages);
-
-    // Shared daily Gemini budget (free-tier guard, D-002): one unit per
-    // analysis attempt. Consumed only when we are about to call the model.
+    // Shared daily Gemini budget (free-tier guard)
     const daily = await consumeRateLimit(
       "gemini:daily",
       getEnv().GEMINI_DAILY_REQUEST_LIMIT,
@@ -74,7 +55,7 @@ export async function runDocumentPipeline(
     );
     if (!daily.allowed) {
       await updateStatus(documentId, "failed", { errorCode: "ai_capacity" });
-      return { claimed: true };
+      return;
     }
 
     const gateway = createGeminiGateway(deps.transport);
@@ -83,8 +64,8 @@ export async function runDocumentPipeline(
     const filtered = applyPolicyFilter(result);
     const validated = validateAnalysisCitations(
       filtered.result,
-      processed.pages,
-      processed.isScanned
+      pages,
+      isScanned
     );
 
     await upsertAnalysis({
@@ -94,17 +75,36 @@ export async function runDocumentPipeline(
       inputTokens: usage.inputTokens,
       outputTokens: usage.outputTokens,
       summaryText: buildExtractiveSummary(
-        processed.pages.map((p) => p.text)
+        pages.map((p) => p.text)
       ),
     });
 
     await updateStatus(documentId, "ready", { errorCode: null });
-    return { claimed: true };
   } catch (err) {
     const code = mapPipelineFailure(err);
     await updateStatus(documentId, "failed", { errorCode: code });
-    return { claimed: true };
   }
+}
+
+/**
+ * Re-run analysis for a document that already has pages in the DB.
+ * Used by the retry route.
+ */
+export async function retryAnalysisPipeline(
+  documentId: string,
+  deps: PipelineDeps = {}
+): Promise<void> {
+  const pages = await getPageTexts(documentId);
+  if (!pages || pages.length === 0) {
+    await updateStatus(documentId, "failed", { errorCode: "extraction_failed" });
+    return;
+  }
+
+  // Determine isScanned from char count
+  const charCount = pages.reduce((sum, p) => sum + p.text.length, 0);
+  const isScanned = charCount < 200;
+
+  await runAnalysisPipeline(documentId, pages, isScanned, deps);
 }
 
 export function mapPipelineFailure(err: unknown): string {

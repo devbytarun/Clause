@@ -1,21 +1,15 @@
 import { eq, isNotNull } from "drizzle-orm";
 import { db } from "@/db";
 import { documents } from "@/db/schema";
-import { getStoragePath } from "@/lib/documents/repository";
-import { getStorage } from "@/lib/storage";
 import { pruneRateWindows } from "@/lib/rate-limit";
 import { purgeExpiredDocuments } from "@/lib/documents/retention";
 
 /**
  * Nightly cleanup cron (blueprint §14/§22): hard-deletes soft-deleted
- * documents (storage object first, then rows via cascade) and prunes
- * expired rate windows.
+ * documents and expired documents, then prunes rate-limit windows.
  *
  * Auth: shared secret bearer token (CRON_SECRET) — no user session.
- * Storage-side orphans (object without row) need a storage LIST call
- * the MVP adapter does not expose — documented limitation. The reverse
- * orphan cannot occur because DB rows are deleted only after successful
- * object removal.
+ * PDFs are stored client-side so no storage cleanup is needed.
  */
 
 function authorize(req: Request): boolean {
@@ -24,7 +18,6 @@ function authorize(req: Request): boolean {
   const header = req.headers.get("authorization") ?? "";
   const presented = header.replace(/^Bearer\s+/i, "");
   if (presented.length !== secret.length) return false;
-  // Length-constant compare without leaking prefix matches on failure.
   let diff = 0;
   for (let i = 0; i < secret.length; i++) {
     diff |= secret.charCodeAt(i) ^ presented.charCodeAt(i);
@@ -52,8 +45,6 @@ export async function GET(req: Request) {
 
   for (const row of rows) {
     try {
-      const path = await getStoragePath(row.id);
-      if (path) await getStorage().remove(path);
       await db.delete(documents).where(eq(documents.id, row.id));
       purged.push(row.id);
     } catch (err) {

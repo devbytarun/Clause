@@ -30,11 +30,9 @@ export default async function DashboardPage() {
               Clause<span className="text-[#F04D35]">.</span>
             </Link>
 
-            <nav className="flex items-center gap-2 border-l border-[#D8D2C6] pl-5">
-              <span className="inline-flex items-center gap-2 rounded-[4px] border border-[#D8D2C6] bg-[#F3F0E8] px-2.5 py-1 text-[11px] font-mono font-bold text-[#171714]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#2E7D4F]" />
-                Workspace Live
-              </span>
+            <nav className="hidden items-center gap-5 border-l border-[#D8D2C6] pl-5 text-[13px] font-semibold sm:flex" aria-label="Workspace navigation">
+              <Link href="/" className="text-[#646158] no-underline transition-colors hover:text-[#171714]">Home</Link>
+              <span aria-current="page" className="text-[#171714]">Documents</span>
             </nav>
           </div>
 
@@ -45,7 +43,7 @@ export default async function DashboardPage() {
               </span>
               <span className="max-w-[130px] truncate font-medium text-[#171714] sm:max-w-xs">Local workspace</span>
             </div>
-            <span className="text-[11px] font-mono text-[#646158]">Saved on this machine</span>
+            <span className="hidden text-[11px] font-mono text-[#646158] md:inline">Saved locally</span>
           </div>
         </div>
       </header>
@@ -114,7 +112,10 @@ export default async function DashboardPage() {
       <footer className="w-full border-t border-[#D8D2C6] bg-[#FFFDF7] py-6 text-[11px] font-mono text-[#989388]">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-6 sm:px-10 lg:px-14 xl:px-16">
           <span>© {new Date().getFullYear()} Clause. Informational document analysis only.</span>
-          <span>PAPER #F3F0E8 · INK #171714 · REDLINE DESK v1.0</span>
+          <nav className="flex items-center gap-4" aria-label="Footer navigation">
+            <Link href="/privacy" className="transition-colors hover:text-[#171714]">Privacy</Link>
+            <Link href="/terms" className="transition-colors hover:text-[#171714]">Terms</Link>
+          </nav>
         </div>
       </footer>
     </main>

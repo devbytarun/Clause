@@ -5,7 +5,7 @@ import {
   getDocumentForUser,
   updateStatus,
 } from "@/lib/documents/repository";
-import { runDocumentPipeline } from "@/lib/pipeline/service";
+import { retryAnalysisPipeline } from "@/lib/pipeline/service";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { getEnv } from "@/lib/env";
 
@@ -33,11 +33,11 @@ export const POST = withAuth<{ id: string }>(async (_req, ctx) => {
   );
   if (!rl.allowed) return jsonError(429, "rate_limited");
 
-  await updateStatus(id, "queued", { errorCode: null });
+  await updateStatus(id, "analyzing", { errorCode: null });
 
-  // Kick the pipeline in the background; status flips queued→extracting.
+  // Re-run Gemini analysis using pages already stored in the DB.
   after(async () => {
-    await runDocumentPipeline(id).catch(() => undefined);
+    await retryAnalysisPipeline(id).catch(() => undefined);
   });
 
   return jsonOk({ status: "queued" });

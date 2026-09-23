@@ -8,7 +8,6 @@ import {
   getDocumentForUser,
   softDeleteDocument,
 } from "@/lib/documents/repository";
-import { getStorage } from "@/lib/storage";
 
 export const GET = withAuth<{ id: string }>(async (_req, ctx) => {
   const { id } = await ctx.params;
@@ -34,19 +33,8 @@ export const DELETE = withAuth<{ id: string }>(async (_req, ctx) => {
   if (!ok) return jsonError(404, "not_found");
 
   // Hard cleanup runs in the background; soft delete hides instantly.
+  // No storage cleanup needed — PDFs are stored client-side only.
   after(async () => {
-    const rows = await db
-      .select({ storagePath: documents.storagePath, userId: documents.userId })
-      .from(documents)
-      .where(eq(documents.id, id))
-      .limit(1);
-    const row = rows[0];
-    if (!row) return;
-    try {
-      await getStorage().remove(row.storagePath);
-    } catch {
-      // Nightly orphan sweeper reconciles storage leftovers (blueprint §14).
-    }
     await db.delete(documents).where(eq(documents.id, id));
   });
 

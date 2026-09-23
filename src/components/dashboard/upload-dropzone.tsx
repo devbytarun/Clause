@@ -3,6 +3,7 @@
 import { useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { errorMessage } from "@/lib/error-codes";
+import { cachePdf } from "@/lib/client/idb-pdf-cache";
 import { UploadCloud, ShieldAlert, FileText, Loader2, AlertCircle, X } from "lucide-react";
 
 const CONSENT_KEY = "clause-upload-consent-v1";
@@ -48,6 +49,8 @@ export function UploadDropzone() {
 
       if (res.status === 201) {
         const body = await res.json();
+        // Cache the PDF in IndexedDB so the viewer can render it locally
+        await cachePdf(body.id, file).catch(() => undefined);
         router.push(`/documents/${body.id}`);
         return;
       }
@@ -82,7 +85,7 @@ export function UploadDropzone() {
               Privacy & Document Processing Notice
             </h4>
             <p className="text-[13px] leading-relaxed text-[#646158] mb-3.5">
-              Agreements are saved in this app&apos;s local storage, then extracted for page-level citations and AI analysis. Delete a document any time to remove its local file and results.
+              Your PDF stays in this browser&apos;s local storage. Only the extracted text is sent for AI analysis. Delete a document any time to remove all data.
             </p>
             <label className="inline-flex items-center gap-2.5 text-[13px] font-semibold text-[#171714] cursor-pointer hover:text-[#F04D35] transition-colors">
               <input

@@ -372,3 +372,15 @@ export async function searchPagesForUser(
 function escapedLike(value: string): string {
   return value.replace(/[%_\\]/g, "\\$&");
 }
+
+/** Read all page texts for a document (used by the analysis retry pipeline). */
+export async function getPageTexts(
+  documentId: string
+): Promise<{ pageNumber: number; text: string }[]> {
+  return db
+    .select({ pageNumber: documentPages.pageNumber, text: documentPages.text })
+    .from(documentPages)
+    .where(eq(documentPages.documentId, documentId))
+    .orderBy(asc(documentPages.pageNumber));
+}
+

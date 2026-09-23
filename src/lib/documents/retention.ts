@@ -2,7 +2,6 @@ import { and, eq, isNull, lt } from "drizzle-orm";
 import { db } from "@/db";
 import { documents } from "@/db/schema";
 import { getEnv } from "@/lib/env";
-import { getStorage } from "@/lib/storage";
 
 export interface RetentionSweepResult {
   cutoff: Date;
@@ -12,8 +11,7 @@ export interface RetentionSweepResult {
 
 /**
  * Hard-delete active documents older than the configured retention window.
- * Storage is removed before the database row so a failed database delete can
- * be retried without leaving a document visible in the workspace.
+ * PDFs are stored client-side, so only database rows need cleanup.
  */
 export async function purgeExpiredDocuments(
   userId?: string
@@ -27,7 +25,7 @@ export async function purgeExpiredDocuments(
   }
 
   const rows = await db
-    .select({ id: documents.id, storagePath: documents.storagePath })
+    .select({ id: documents.id })
     .from(documents)
     .where(and(...conditions));
 
@@ -36,7 +34,6 @@ export async function purgeExpiredDocuments(
 
   for (const row of rows) {
     try {
-      await getStorage().remove(row.storagePath);
       await db
         .delete(documents)
         .where(and(eq(documents.id, row.id), isNull(documents.deletedAt)));

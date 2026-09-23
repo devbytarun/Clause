@@ -7,13 +7,15 @@ import {
   createQueuedDocument,
   countActiveDocumentsForUser,
   findDuplicateForUser,
+  replacePages,
+  updateStatus,
 } from "@/lib/documents/repository";
-import { getStorage } from "@/lib/storage";
 import {
   hasPdfMagicBytes,
   MAX_SIZE_BYTES,
+  processDocument,
 } from "@/lib/pipeline/document-processor";
-import { runDocumentPipeline } from "@/lib/pipeline/service";
+import { runAnalysisPipeline } from "@/lib/pipeline/service";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { getEnv } from "@/lib/env";
 
@@ -106,11 +108,13 @@ export const POST = withAuth(async (req: NextRequest, ctx) => {
     }
   }
 
-  const docId = crypto.randomUUID();
-  const storagePath = `${ctx.userId}/${docId}.pdf`;
+  // --- Extract text in-memory (no file written to disk/cloud) ---
+  const processed = await processDocument(bytes);
 
-  const storage = getStorage();
-  await storage.upload(storagePath, bytes, "application/pdf");
+  const docId = crypto.randomUUID();
+  // storagePath must be unique per DB constraint; use a sentinel prefix
+  // to indicate no server-side file exists.
+  const storagePath = `client-only/${ctx.userId}/${docId}`;
 
   const created = await createQueuedDocument({
     userId: ctx.userId,
@@ -120,8 +124,17 @@ export const POST = withAuth(async (req: NextRequest, ctx) => {
     storagePath,
   });
 
+  // Store extracted pages and advance status past extraction phase
+  await replacePages(created.id, processed.pages);
+  await updateStatus(created.id, "analyzing", {
+    pageCount: processed.pageCount,
+    charCount: processed.charCount,
+    isScanned: processed.isScanned,
+  });
+
+  // Run Gemini analysis in the background (text is already in DB)
   after(async () => {
-    await runDocumentPipeline(created.id).catch(() => undefined);
+    await runAnalysisPipeline(created.id, processed.pages, processed.isScanned).catch(() => undefined);
   });
 
   return jsonOk({ id: created.id, status: "queued" }, 201);

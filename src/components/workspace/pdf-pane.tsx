@@ -2,11 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { PageSearch } from "@/components/workspace/page-search";
-import { errorMessage } from "@/lib/error-codes";
+import { getCachedPdf, cachePdf } from "@/lib/client/idb-pdf-cache";
 
 /**
  * PDF viewer pane.
- * Uses browser-native PDF renderer against a signed URL.
+ * Loads the PDF from the browser's IndexedDB cache (never fetched from server).
  */
 export function PdfPane({
   documentId,
@@ -18,38 +18,46 @@ export function PdfPane({
   pageCount: number | null;
 }) {
   const [page, setPage] = useState(initialPage);
-  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const issuedAtRef = useRef(0);
+  const blobUrlRef = useRef<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  async function loadSignedUrl() {
+  async function loadFromCache() {
     try {
-      const res = await fetch(`/api/documents/${documentId}/file`);
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        throw new Error(
-          body?.error?.message ??
-            errorMessage("storage_unavailable") ??
-            "Viewer unavailable"
+      const file = await getCachedPdf(documentId);
+      if (!file) {
+        setError(
+          "PDF not in this browser's local cache. Select the file from your computer to view it locally."
         );
+        return;
       }
-      const body = await res.json();
-      setSignedUrl(body.url as string);
-      issuedAtRef.current = Date.now();
+      // Revoke previous blob URL to avoid memory leaks
+      if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
+      const url = URL.createObjectURL(file);
+      blobUrlRef.current = url;
+      setBlobUrl(url);
       setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Viewer unavailable");
+    } catch {
+      setError("Failed to load PDF from local cache.");
+    }
+  }
+
+  async function handleLocalFileSelect(files: FileList | null) {
+    const file = files?.[0];
+    if (!file) return;
+    try {
+      await cachePdf(documentId, file);
+      await loadFromCache();
+    } catch {
+      setError("Failed to cache local PDF.");
     }
   }
 
   useEffect(() => {
-    const boot = setTimeout(() => void loadSignedUrl(), 0);
-    const timer = setInterval(() => {
-      if (Date.now() - issuedAtRef.current > 600_000) void loadSignedUrl();
-    }, 60_000);
+    void loadFromCache();
     return () => {
-      clearTimeout(boot);
-      clearInterval(timer);
+      if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [documentId]);
@@ -67,7 +75,7 @@ export function PdfPane({
             aria-label="Previous page"
             disabled={!canPrev}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
-            className="flex h-7 w-7 items-center justify-center rounded-[4px] border border-[#D8D2C6] bg-[#FFFDF7] font-mono text-[11px] font-bold text-[#171714] transition-colors hover:bg-[#F3F0E8] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#3157D5]"
+            className="flex h-9 w-9 items-center justify-center rounded-[4px] border border-[#D8D2C6] bg-[#FFFDF7] font-mono text-[11px] font-bold text-[#171714] transition-colors hover:bg-[#F3F0E8] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#3157D5] sm:h-7 sm:w-7"
           >
             ←
           </button>
@@ -80,7 +88,7 @@ export function PdfPane({
             aria-label="Next page"
             disabled={!canNext}
             onClick={() => setPage((p) => Math.min(maxPage, p + 1))}
-            className="flex h-7 w-7 items-center justify-center rounded-[4px] border border-[#D8D2C6] bg-[#FFFDF7] font-mono text-[11px] font-bold text-[#171714] transition-colors hover:bg-[#F3F0E8] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#3157D5]"
+            className="flex h-9 w-9 items-center justify-center rounded-[4px] border border-[#D8D2C6] bg-[#FFFDF7] font-mono text-[11px] font-bold text-[#171714] transition-colors hover:bg-[#F3F0E8] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#3157D5] sm:h-7 sm:w-7"
           >
             →
           </button>
@@ -88,9 +96,9 @@ export function PdfPane({
         <div className="min-w-0 sm:w-56">
           <PageSearch documentId={documentId} onJump={(p) => setPage(p)} />
         </div>
-        {signedUrl && (
+        {blobUrl && (
           <a
-            href={`${signedUrl}#page=${page}`}
+            href={`${blobUrl}#page=${page}`}
             target="_blank"
             rel="noreferrer"
             className="rounded-[4px] border border-[#D8D2C6] bg-[#FFFDF7] px-2.5 py-1.5 font-mono text-[10px] font-bold text-[#171714] no-underline hover:bg-[#F3F0E8]"
@@ -103,17 +111,33 @@ export function PdfPane({
       <div className="relative min-h-0 flex-1 bg-[#FFFDF7] lg:min-h-[480px]">
         {error && (
           <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-center">
-            <p className="text-[13px] text-[#646158]">{error}</p>
-            <button
-              type="button"
-              onClick={() => void loadSignedUrl()}
-              className="rounded-[6px] border border-[#D8D2C6] bg-[#FFFDF7] px-3.5 py-1.5 font-mono text-[11px] font-bold text-[#171714] transition-colors hover:bg-[#F3F0E8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3157D5]"
-            >
-              Reload Viewer
-            </button>
+            <p className="text-[13px] text-[#646158] max-w-sm">{error}</p>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="application/pdf,.pdf"
+                className="sr-only"
+                onChange={(e) => void handleLocalFileSelect(e.target.files)}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="rounded-[6px] bg-[#F04D35] px-3.5 py-1.5 font-mono text-[11px] font-bold text-[#FFFDF7] transition-colors hover:bg-[#C93625] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3157D5]"
+              >
+                Choose Local PDF
+              </button>
+              <button
+                type="button"
+                onClick={() => void loadFromCache()}
+                className="rounded-[6px] border border-[#D8D2C6] bg-[#FFFDF7] px-3.5 py-1.5 font-mono text-[11px] font-bold text-[#171714] transition-colors hover:bg-[#F3F0E8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3157D5]"
+              >
+                Reload
+              </button>
+            </div>
           </div>
         )}
-        {!error && !signedUrl && (
+        {!error && !blobUrl && (
           <div
             className="flex h-full flex-col items-center justify-center gap-2 font-mono text-[11px] text-[#646158]"
             role="status"
@@ -123,10 +147,10 @@ export function PdfPane({
             <span>Loading PDF document…</span>
           </div>
         )}
-        {!error && signedUrl && (
+        {!error && blobUrl && (
           <object
-            key={`${signedUrl}#${page}`}
-            data={`${signedUrl}#page=${page}`}
+            key={`${blobUrl}#${page}`}
+            data={`${blobUrl}#page=${page}`}
             type="application/pdf"
             aria-label={`PDF viewer — page ${page}`}
             className="h-full w-full bg-[#FFFDF7]"
@@ -136,7 +160,7 @@ export function PdfPane({
                 This browser cannot render the PDF inline.
               </p>
               <a
-                href={`${signedUrl}#page=${page}`}
+                href={`${blobUrl}#page=${page}`}
                 target="_blank"
                 rel="noreferrer"
                 className="rounded-[6px] bg-[#F04D35] px-4 py-2 font-mono text-[11px] font-bold text-[#FFFDF7] no-underline hover:bg-[#C93625]"

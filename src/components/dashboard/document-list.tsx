@@ -14,6 +14,7 @@ import {
   FilePlus, 
   Layers 
 } from "lucide-react";
+import { removeCachedPdf } from "@/lib/client/idb-pdf-cache";
 
 export interface DocumentItem {
   id: string;
@@ -96,6 +97,7 @@ export function DocumentList({
     try {
       const res = await fetch("/api/documents/" + id, { method: "DELETE" });
       if (res.ok) {
+        await removeCachedPdf(id).catch(() => undefined);
         router.refresh();
       }
     } catch {
