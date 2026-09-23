@@ -86,9 +86,6 @@ export default function LandingPage() {
 
           {/* Desktop compact links */}
           <nav className="hidden md:flex items-center gap-8 text-[13px] font-semibold text-[#646158]" aria-label="Main Navigation">
-            <a href="#overview" className="transition-colors hover:text-[#171714] no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3157D5]">
-              Overview
-            </a>
             <a href="#evidence" className="transition-colors hover:text-[#171714] no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3157D5]">
               Page Verification
             </a>
@@ -131,13 +128,6 @@ export default function LandingPage() {
         {mobileMenuOpen && (
           <div className="md:hidden border-b border-[#D8D2C6] bg-[#FFFDF7] px-6 py-5">
             <nav className="flex flex-col gap-3.5 text-[15px] font-semibold" aria-label="Mobile Navigation">
-              <a
-                href="#overview"
-                onClick={() => setMobileMenuOpen(false)}
-                className="py-1.5 text-[#171714] border-b border-[#D8D2C6]/50 no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3157D5]"
-              >
-                Overview
-              </a>
               <a
                 href="#evidence"
                 onClick={() => setMobileMenuOpen(false)}
@@ -969,7 +959,7 @@ export default function LandingPage() {
 
           <div className="mt-10 border-t border-[#D8D2C6] pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-[12px] text-[#989388]">
             <p>© {new Date().getFullYear()} Clause. Informational document analysis only — not legal advice.</p>
-            <p className="font-mono">PAPER #F3F0E8 · INK #171714 · SIGNAL #F04D35</p>
+            <p className="font-mono">Local document analysis · Informational use only</p>
           </div>
         </div>
       </footer>

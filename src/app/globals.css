@@ -95,6 +95,11 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 4.5rem;
+}
+
 /* Keep horizontally scrollable controls usable without exposing browser chrome. */
 .no-scrollbar {
   -ms-overflow-style: none;
@@ -151,4 +156,20 @@ body {
   background: linear-gradient(135deg, #111827 0%, #fa520f 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }

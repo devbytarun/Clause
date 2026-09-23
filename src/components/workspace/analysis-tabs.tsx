@@ -47,7 +47,8 @@ export function AnalysisTabs({
       <div
         role="tablist"
         aria-label="Document analysis sections"
-        className="grid shrink-0 grid-cols-5 items-stretch overflow-hidden border-b border-[#D8D2C6] bg-[#F3F0E8]/50 px-1 pt-1 no-scrollbar sm:px-2 sm:pt-2.5"
+        aria-orientation="horizontal"
+        className="flex shrink-0 items-stretch overflow-x-auto border-b border-[#D8D2C6] bg-[#F3F0E8]/50 px-1 pt-1 no-scrollbar touch-pan-x sm:px-2 sm:pt-2.5"
       >
         {TABS.map((tab) => {
           const isActive = active === tab.id;
@@ -62,7 +63,9 @@ export function AnalysisTabs({
               aria-controls={`analysis-panel-${tab.id}`}
               aria-selected={isActive}
               onClick={() => setActive(tab.id)}
-              className={`flex min-h-11 min-w-0 items-center justify-center gap-1 px-1 py-2 text-[10px] font-mono font-bold transition-all rounded-t-[6px] whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3157D5] sm:min-h-0 sm:px-1.5 sm:text-[11px] max-[420px]:gap-0 ${
+              className={`${
+                tab.id === "chat" ? "hidden lg:flex" : "flex"
+              } min-h-11 min-w-[88px] shrink-0 items-center justify-center gap-1 px-2 py-2 text-[10px] font-mono font-bold transition-all rounded-t-[6px] whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3157D5] sm:min-w-0 sm:flex-1 sm:px-1.5 sm:text-[11px] ${
                 isActive
                   ? "-mb-px border-t border-x border-[#D8D2C6] bg-[#FFFDF7] text-[#171714] shadow-xs"
                   : "text-[#646158] hover:text-[#171714] hover:bg-[#FFFDF7]/60"

@@ -16,6 +16,7 @@ import {
   StatusPoller,
 } from "@/components/workspace/document-actions";
 import { ChatDrawer } from "@/components/workspace/chat-drawer";
+import { MobileChatFab } from "@/components/workspace/mobile-chat-fab";
 import { FileText, ArrowLeft } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -27,11 +28,11 @@ interface PageProps {
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex gap-3 border-b border-[#D8D2C6]/60 py-2.5 last:border-0">
-      <dt className="w-40 shrink-0 font-mono text-[11px] font-bold uppercase tracking-wider text-[#646158]">
+    <div className="flex flex-col gap-1 border-b border-[#D8D2C6]/60 py-2.5 last:border-0 sm:flex-row sm:gap-3">
+      <dt className="shrink-0 font-mono text-[11px] font-bold uppercase tracking-wider text-[#646158] sm:w-40">
         {label}
       </dt>
-      <dd className="text-[13px] leading-relaxed text-[#171714] font-medium">{value}</dd>
+      <dd className="min-w-0 break-words text-[13px] leading-relaxed text-[#171714] font-medium">{value}</dd>
     </div>
   );
 }
@@ -226,7 +227,7 @@ export default async function WorkspacePage({ params, searchParams }: PageProps)
         {doc.status === "ready" && (
           <div className="grid min-h-0 flex-1 grid-cols-1 items-stretch gap-4 sm:gap-5 lg:grid-cols-12">
             {/* Left Column: PDF Viewer */}
-            <div className="flex h-[48vh] min-h-[320px] max-h-[560px] min-w-0 flex-col sm:h-[55vh] lg:col-span-6 lg:h-[calc(100vh-100px)] lg:min-h-[580px]">
+            <div className="flex h-[min(55dvh,560px)] min-h-[320px] max-h-[560px] min-w-0 flex-col sm:h-[55vh] lg:col-span-6 lg:h-[calc(100vh-100px)] lg:min-h-[580px]">
               <PdfPane
                 documentId={doc.id}
                 initialPage={
@@ -239,7 +240,7 @@ export default async function WorkspacePage({ params, searchParams }: PageProps)
             </div>
 
             {/* Right Column: Analysis Tabs & Chat */}
-            <div className="flex h-[calc(100vh-5.5rem)] min-h-[560px] min-w-0 flex-col lg:col-span-6 lg:h-[calc(100vh-100px)] lg:min-h-[580px]">
+            <div className="flex h-[min(680px,calc(100dvh-5.5rem))] min-h-[520px] min-w-0 flex-col lg:col-span-6 lg:h-[calc(100vh-100px)] lg:min-h-[580px]">
               {sections ? (
                 <AnalysisTabs sections={sections} counts={counts} defaultTab="concerns" />
               ) : (
@@ -251,6 +252,17 @@ export default async function WorkspacePage({ params, searchParams }: PageProps)
           </div>
         )}
       </div>
+
+      {/* Mobile Floating Q&A Button */}
+      {parsedAnalysis?.success && (
+        <MobileChatFab
+          documentId={id}
+          suggestedQuestions={parsedAnalysis.data.questions_to_ask.map(
+            (q) => q.question
+          )}
+          disabledReason={null}
+        />
+      )}
     </main>
   );
 }
