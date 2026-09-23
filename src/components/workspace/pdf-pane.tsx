@@ -55,8 +55,11 @@ export function PdfPane({
   }
 
   useEffect(() => {
-    void loadFromCache();
+    const timer = setTimeout(() => {
+      void loadFromCache();
+    }, 0);
     return () => {
+      clearTimeout(timer);
       if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

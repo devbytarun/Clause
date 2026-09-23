@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { describe, expect, it, afterAll } from "vitest";
 import {
   TEST_DATABASE_URL,
@@ -88,12 +89,13 @@ async function seedAnalyzingDoc(userId: string) {
   await getTestDb();
   const pdfBytes = new Uint8Array(fixturePdf);
   const processed = await processDocument(pdfBytes);
+  const sha256 = createHash("sha256").update(pdfBytes).digest("hex");
 
   const doc = await createQueuedDocument({
     userId,
     originalFilename: "nda-test.pdf",
     sizeBytes: fixturePdf.length,
-    sha256: crypto.randomUUID().replace(/-/g, ""),
+    sha256,
     storagePath: `client-only/${userId}/${crypto.randomUUID()}`,
   });
 
