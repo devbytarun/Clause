@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import { sql } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
@@ -9,58 +10,68 @@ export type SessionUser = {
   image: string | null;
 };
 
-/**
- * Local-only workspace identity. There is no login gate and no Supabase
- * session: this app intentionally stores one private workspace on the
- * machine running Next.js.
- */
-const LOCAL_WORKSPACE_USER = {
-  id: "00000000-0000-4000-8000-000000000001",
-  email: "local@clause.local",
-  name: "Local workspace",
-  image: null,
-} as const;
+export const DEVICE_COOKIE_NAME = "clause_device_id";
+
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const FALLBACK_USER_ID = "00000000-0000-4000-8000-000000000001";
 
 /**
- * Cache the upsert promise so the DB round-trip happens at most once per
- * server instance instead of on every page navigation. On Vercel this
- * means once per cold start (~1 per 5-15 min) rather than every request.
- *
- * Retention sweeps are handled by the daily /api/cron/cleanup endpoint
- * and no longer run inline here — that was adding 200-400ms of latency
- * on every production page load.
+ * In-memory cache of ensured users during this server process lifecycle,
+ * so we only do a database upsert once per device per process rather than
+ * on every single page load or API request.
  */
-let ensured: Promise<true> | null = null;
+const ensuredUsers = new Set<string>();
 
-function ensureUserRow(): Promise<true> {
-  if (!ensured) {
-    ensured = db
-      .insert(users)
-      .values(LOCAL_WORKSPACE_USER)
-      .onConflictDoUpdate({
-        target: users.id,
-        set: {
-          email: LOCAL_WORKSPACE_USER.email,
-          name: sql`coalesce(excluded.name, ${users}.name)`,
-          image: LOCAL_WORKSPACE_USER.image,
-        },
-      })
-      .then(() => true as const)
-      .catch(() => {
-        // Reset so the next call retries.
-        ensured = null;
-        throw new Error("User row upsert failed");
-      });
-  }
-  return ensured;
+async function ensureDeviceUser(userId: string): Promise<void> {
+  if (ensuredUsers.has(userId)) return;
+
+  const email = `${userId}@clause.local`;
+  await db
+    .insert(users)
+    .values({
+      id: userId,
+      email,
+      name: "Workspace",
+      image: null,
+    })
+    .onConflictDoUpdate({
+      target: users.id,
+      set: {
+        email,
+        name: sql`coalesce(excluded.name, ${users}.name)`,
+      },
+    });
+
+  ensuredUsers.add(userId);
 }
 
 export async function getSessionUser(): Promise<SessionUser | null> {
   try {
-    await ensureUserRow();
-    return LOCAL_WORKSPACE_USER;
-  } catch {
-    // Database failures remain a safe denial for API routes.
+    let userId = FALLBACK_USER_ID;
+
+    try {
+      const cookieStore = await cookies();
+      const cookieVal = cookieStore.get(DEVICE_COOKIE_NAME)?.value;
+      if (cookieVal && UUID_REGEX.test(cookieVal)) {
+        userId = cookieVal;
+      }
+    } catch {
+      // In contexts where cookies() is not available (e.g. standalone scripts),
+      // gracefully fall back to default workspace ID.
+    }
+
+    await ensureDeviceUser(userId);
+
+    return {
+      id: userId,
+      email: `${userId}@clause.local`,
+      name: "Workspace",
+      image: null,
+    };
+  } catch (err) {
+    console.error("Session resolution error:", err);
     return null;
   }
 }
