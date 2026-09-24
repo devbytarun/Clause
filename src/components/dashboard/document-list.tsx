@@ -15,6 +15,7 @@ import {
   Layers 
 } from "lucide-react";
 import { removeCachedPdf } from "@/lib/client/idb-pdf-cache";
+import { DeleteModal } from "@/components/ui/delete-modal";
 
 export interface DocumentItem {
   id: string;
@@ -84,25 +85,36 @@ export function DocumentList({
 }) {
   const router = useRouter();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<{
+    id: string;
+    filename: string;
+  } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  async function handleDelete(e: React.MouseEvent, id: string, filename: string) {
+  function openDeleteModal(e: React.MouseEvent, id: string, filename: string) {
     e.preventDefault();
     e.stopPropagation();
+    setPendingDelete({ id, filename });
+  }
 
-    if (!window.confirm(`Permanently delete "${filename}" and all extracted evidence?`)) {
-      return;
-    }
+  async function handleConfirmDelete() {
+    if (!pendingDelete) return;
 
-    setDeletingId(id);
+    setIsDeleting(true);
+    setDeletingId(pendingDelete.id);
     try {
-      const res = await fetch("/api/documents/" + id, { method: "DELETE" });
+      const res = await fetch("/api/documents/" + pendingDelete.id, {
+        method: "DELETE",
+      });
       if (res.ok) {
-        await removeCachedPdf(id).catch(() => undefined);
+        await removeCachedPdf(pendingDelete.id).catch(() => undefined);
+        setPendingDelete(null);
         router.refresh();
       }
     } catch {
       // Ignored
     } finally {
+      setIsDeleting(false);
       setDeletingId(null);
     }
   }
@@ -194,7 +206,7 @@ export function DocumentList({
 
                 <button
                   type="button"
-                  onClick={(e) => handleDelete(e, doc.id, doc.originalFilename)}
+                  onClick={(e) => openDeleteModal(e, doc.id, doc.originalFilename)}
                   title="Delete document"
                   aria-label={"Delete " + doc.originalFilename}
                   className="flex h-[36px] w-[36px] items-center justify-center rounded-[6px] border border-[#D8D2C6] bg-[#FFFDF7] text-[#646158] transition-all hover:border-[#C53B36] hover:bg-[#C53B36]/10 hover:text-[#C53B36]"
@@ -212,6 +224,16 @@ export function DocumentList({
           Showing {items.length} most recent documents.
         </p>
       )}
+
+      <DeleteModal
+        isOpen={pendingDelete !== null}
+        onClose={() => {
+          if (!isDeleting) setPendingDelete(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        filename={pendingDelete?.filename}
+        isDeleting={isDeleting}
+      />
     </div>
   );
 }

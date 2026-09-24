@@ -197,7 +197,11 @@ export default async function WorkspacePage({ params, searchParams }: PageProps)
 
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2.5">
             <span className="max-[420px]:hidden"><StatusPoller status={doc.status} /></span>
-            <DocumentActions documentId={doc.id} status={doc.status} />
+            <DocumentActions
+              documentId={doc.id}
+              status={doc.status}
+              filename={doc.originalFilename}
+            />
           </div>
         </div>
       </header>
@@ -220,7 +224,11 @@ export default async function WorkspacePage({ params, searchParams }: PageProps)
               {errorMessage(doc.errorCode ?? "") ??
                 "An error occurred while processing this document."}
             </p>
-            <DocumentActions documentId={doc.id} status={doc.status} />
+            <DocumentActions
+              documentId={doc.id}
+              status={doc.status}
+              filename={doc.originalFilename}
+            />
           </div>
         )}
 

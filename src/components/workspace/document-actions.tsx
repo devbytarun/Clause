@@ -4,22 +4,23 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { errorMessage } from "@/lib/error-codes";
 import { removeCachedPdf } from "@/lib/client/idb-pdf-cache";
+import { DeleteModal } from "@/components/ui/delete-modal";
 
 export function DocumentActions({
   documentId,
   status,
+  filename,
 }: {
   documentId: string;
   status: string;
+  filename?: string;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState<null | "retry" | "delete">(null);
   const [error, setError] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  async function handleDelete() {
-    if (!window.confirm("Permanently delete this document and its analysis?")) {
-      return;
-    }
+  async function handleConfirmDelete() {
     setBusy("delete");
     setError(null);
     try {
@@ -31,6 +32,7 @@ export function DocumentActions({
         throw new Error(body?.error?.message ?? "Delete failed");
       }
       await removeCachedPdf(documentId).catch(() => undefined);
+      setShowDeleteModal(false);
       router.push("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Delete failed");
@@ -79,12 +81,22 @@ export function DocumentActions({
       )}
       <button
         type="button"
-        onClick={handleDelete}
+        onClick={() => setShowDeleteModal(true)}
         disabled={busy !== null}
         className="rounded-[6px] border border-[#D8D2C6] bg-[#FFFDF7] px-3 py-1 font-mono text-[11px] font-bold text-[#646158] transition-colors hover:border-[#C53B36] hover:bg-[#C53B36]/10 hover:text-[#C53B36] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C53B36]"
       >
         {busy === "delete" ? "Deleting…" : "Delete"}
       </button>
+
+      <DeleteModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          if (busy !== "delete") setShowDeleteModal(false);
+        }}
+        onConfirm={handleConfirmDelete}
+        filename={filename}
+        isDeleting={busy === "delete"}
+      />
     </div>
   );
 }

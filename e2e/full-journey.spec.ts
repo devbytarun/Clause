@@ -96,8 +96,8 @@ test.describe("full journey @live", () => {
     });
 
     // ---- Delete → gone everywhere ----
-    page.once("dialog", (d) => d.accept());
     await page.getByRole("button", { name: "Delete" }).click();
+    await page.getByRole("button", { name: "Permanently Delete" }).click();
     await page.waitForURL("**/dashboard");
     const apiRes = await page.request.get(`/api/documents/${documentId}`);
     expect(apiRes.status()).toBe(404);
