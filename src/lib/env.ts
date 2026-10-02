@@ -26,9 +26,9 @@ const serverEnvSchema = z.object({
   GOOGLE_GENERATIVE_AI_API_KEY: emptied(z.string().min(1).optional()),
 
   GEMINI_ANALYSIS_MODEL: emptied(
-    z.string().min(1).default("gemini-3.6-flash")
+    z.string().min(1).default("gemini-3.5-flash")
   ),
-  GEMINI_CHAT_MODEL: emptied(z.string().min(1).default("gemini-3.6-flash")),
+  GEMINI_CHAT_MODEL: emptied(z.string().min(1).default("gemini-3.5-flash")),
 
   STORAGE_DRIVER: emptied(z.literal("local").default("local")),
 

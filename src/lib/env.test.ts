@@ -10,8 +10,8 @@ const validBase = {
 describe("parseEnv", () => {
   it("accepts the minimal required set and applies defaults", () => {
     const env = parseEnv({ ...validBase });
-    expect(env.GEMINI_ANALYSIS_MODEL).toBe("gemini-3.6-flash");
-    expect(env.GEMINI_CHAT_MODEL).toBe("gemini-3.6-flash");
+    expect(env.GEMINI_ANALYSIS_MODEL).toBe("gemini-3.5-flash");
+    expect(env.GEMINI_CHAT_MODEL).toBe("gemini-3.5-flash");
     expect(env.APP_URL).toBe("http://localhost:3000");
     expect(env.SIGNED_URL_TTL_SECONDS).toBe(900);
     expect(env.STORAGE_DRIVER).toBe("local");
@@ -82,7 +82,7 @@ describe("parseEnv", () => {
       SIGNED_URL_TTL_SECONDS: "",
       APP_URL: "",
     });
-    expect(env.GEMINI_ANALYSIS_MODEL).toBe("gemini-3.6-flash");
+    expect(env.GEMINI_ANALYSIS_MODEL).toBe("gemini-3.5-flash");
     expect(env.SENTRY_DSN).toBeUndefined();
     expect(env.CRON_SECRET).toBeUndefined();
     expect(env.APP_URL).toBe("http://localhost:3000");

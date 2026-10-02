@@ -82,6 +82,11 @@ export async function runAnalysisPipeline(
     await updateStatus(documentId, "ready", { errorCode: null });
   } catch (err) {
     const code = mapPipelineFailure(err);
+    console.error("[analysis] pipeline failed", {
+      documentId,
+      code,
+      error: safeErrorMessage(err),
+    });
     await updateStatus(documentId, "failed", { errorCode: code });
   }
 }
@@ -110,5 +115,19 @@ export async function retryAnalysisPipeline(
 export function mapPipelineFailure(err: unknown): string {
   if (err instanceof DocumentProcessorError) return err.code;
   if (err instanceof GatewayError) return err.code;
+  if (
+    err instanceof Error &&
+    /GOOGLE_GENERATIVE_AI_API_KEY is required/.test(err.message)
+  ) {
+    return "ai_not_configured";
+  }
   return "extraction_failed";
+}
+
+function safeErrorMessage(err: unknown): string {
+  const message = err instanceof Error ? err.message : String(err);
+  return message
+    .replace(/AIza[\w-]+/g, "[redacted-key]")
+    .replace(/(key|api_key|token|authorization)=?[^\s&]+/gi, "$1=[redacted]")
+    .slice(0, 500);
 }

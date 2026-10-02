@@ -23,7 +23,7 @@ pnpm dev                       # http://localhost:3000
 | `AUTH_SECRET` | yes | generic app secret (≥32 chars) |
 | `APP_URL` | no (default localhost:3000) | absolute URL for redirects |
 | `GOOGLE_GENERATIVE_AI_API_KEY` | for AI features | restricted key |
-| `GEMINI_ANALYSIS_MODEL` / `GEMINI_CHAT_MODEL` | no | model override (defaults gemini-3.6-flash) |
+| `GEMINI_ANALYSIS_MODEL` / `GEMINI_CHAT_MODEL` | no | model override (defaults gemini-3.5-flash) |
 | `GEMINI_ANALYSIS_THINKING_BUDGET` / `GEMINI_CHAT_THINKING_BUDGET` | no | thinking tokens (2048 / 0) |
 | `SIGNED_URL_TTL_SECONDS` | no (900) | signed PDF URL lifetime |
 | `DOCUMENT_RETENTION_DAYS` | no (7) | automatic document deletion window |

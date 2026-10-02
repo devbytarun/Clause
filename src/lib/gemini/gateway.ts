@@ -166,14 +166,17 @@ function contentsFor(userPrompt: string) {
   return [{ role: "user", parts: [{ text: userPrompt }] }];
 }
 
-const DEFAULT_MODEL = "gemini-3.6-flash";
+const DEFAULT_MODEL = "gemini-3.5-flash";
+
+function configuredModel(envName: "GEMINI_ANALYSIS_MODEL" | "GEMINI_CHAT_MODEL") {
+  const value = process.env[envName]?.trim();
+  return value || DEFAULT_MODEL;
+}
 
 /** Real SDK transport — server-side only. */
 export function createSdkTransport(): GeminiTransport {
-  const analysisModelId = () =>
-    process.env.GEMINI_ANALYSIS_MODEL ?? DEFAULT_MODEL;
-  const chatModelId = () =>
-    process.env.GEMINI_CHAT_MODEL ?? DEFAULT_MODEL;
+  const analysisModelId = () => configuredModel("GEMINI_ANALYSIS_MODEL");
+  const chatModelId = () => configuredModel("GEMINI_CHAT_MODEL");
 
   return {
     async generate(input): Promise<RawGeneration> {
@@ -329,9 +332,9 @@ export function createGeminiGateway(
 ): GeminiGateway {
   return {
     analysisModelId: () =>
-      process.env.GEMINI_ANALYSIS_MODEL ?? DEFAULT_MODEL,
+      configuredModel("GEMINI_ANALYSIS_MODEL"),
 
-    chatModelId: () => process.env.GEMINI_CHAT_MODEL ?? DEFAULT_MODEL,
+    chatModelId: () => configuredModel("GEMINI_CHAT_MODEL"),
 
     chatStream(input, onDelta) {
       const budget =
@@ -350,7 +353,7 @@ export function createGeminiGateway(
         onDelta
       ).then((gen) => ({
         ...gen,
-        modelId: process.env.GEMINI_CHAT_MODEL ?? DEFAULT_MODEL,
+        modelId: configuredModel("GEMINI_CHAT_MODEL"),
       }));
     },
 
@@ -401,7 +404,7 @@ export function createGeminiGateway(
               text: gen.text,
               inputTokens: totalIn,
               outputTokens: totalOut,
-              modelId: process.env.GEMINI_ANALYSIS_MODEL ?? DEFAULT_MODEL,
+              modelId: configuredModel("GEMINI_ANALYSIS_MODEL"),
             },
             repairUsed,
           };

@@ -54,6 +54,10 @@ export const ERROR_CODES = {
     message: "The AI service is temporarily unavailable. Try again shortly.",
     retryable: true,
   },
+  ai_not_configured: {
+    message: "AI analysis is not configured yet. Please contact the site owner.",
+    retryable: false,
+  },
   ai_capacity: {
     message:
       "The AI service has reached today's usage capacity. Please try again tomorrow.",

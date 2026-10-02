@@ -8,8 +8,8 @@ accounting — lives there and nowhere else.
 
 | Setting | Default | Env override |
 |---|---|---|
-| Analysis model | `gemini-3.6-flash` | `GEMINI_ANALYSIS_MODEL` |
-| Chat model | `gemini-3.6-flash` | `GEMINI_CHAT_MODEL` |
+| Analysis model | `gemini-3.5-flash` | `GEMINI_ANALYSIS_MODEL` |
+| Chat model | `gemini-3.5-flash` | `GEMINI_CHAT_MODEL` |
 | Analysis thinking budget | 2048 tokens | `GEMINI_ANALYSIS_THINKING_BUDGET` |
 | Chat thinking budget | 0 (latency-first) | `GEMINI_CHAT_THINKING_BUDGET` |
 | Temperature | 0.2 (fixed) | — |
@@ -36,7 +36,7 @@ validator errors; persistent invalidity fails as `analysis_invalid`.
 | Empty response | `provider_error` | yes |
 | Safety/prohibited block | `blocked` | no |
 | Unparseable / schema-invalid after repair | `analysis_invalid` | manual retry |
-| Missing API key / storage config | original error passes through unmapped (`missing_api_key`) | config fix |
+| Missing API key / storage config | `ai_not_configured` | config fix |
 
 ## Streaming (chat)
 
