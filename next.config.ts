@@ -12,11 +12,21 @@ const securityHeaders = [
   },
 ];
 
+const privateWorkspaceHeaders = [
+  { key: "Cache-Control", value: "private, no-store, max-age=0" },
+  { key: "Vary", value: "Cookie" },
+];
+
 const nextConfig: NextConfig = {
   serverExternalPackages: ["unpdf"],
   poweredByHeader: false,
   async headers() {
-    return [{ source: "/(.*)", headers: securityHeaders }];
+    return [
+      { source: "/(.*)", headers: securityHeaders },
+      { source: "/dashboard", headers: privateWorkspaceHeaders },
+      { source: "/documents/:path*", headers: privateWorkspaceHeaders },
+      { source: "/api/:path*", headers: privateWorkspaceHeaders },
+    ];
   },
 };
 

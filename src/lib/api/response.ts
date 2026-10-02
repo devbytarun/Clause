@@ -4,7 +4,10 @@ import { errorMessage, type ErrorCode } from "@/lib/error-codes";
 export function jsonOk<T>(data: T, status = 200): NextResponse {
   return NextResponse.json(data, {
     status,
-    headers: { "Cache-Control": "private, no-store" },
+    headers: {
+      "Cache-Control": "private, no-store, max-age=0",
+      Vary: "Cookie",
+    },
   });
 }
 
@@ -13,7 +16,10 @@ export function jsonError(status: number, code: ErrorCode): NextResponse {
     { error: { code, message: errorMessage(code) } },
     {
       status,
-      headers: { "Cache-Control": "private, no-store" },
+      headers: {
+        "Cache-Control": "private, no-store, max-age=0",
+        Vary: "Cookie",
+      },
     }
   );
 }

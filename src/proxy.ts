@@ -7,44 +7,55 @@ const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function proxy(request: NextRequest) {
-  const existingId = request.cookies.get(DEVICE_COOKIE_NAME)?.value;
+  const deviceCookies = request.cookies.getAll(DEVICE_COOKIE_NAME);
+  const validDeviceIds = deviceCookies
+    .map((cookie) => cookie.value)
+    .filter((value) => UUID_REGEX.test(value));
+  const hasOneUnambiguousDeviceId =
+    deviceCookies.length === 1 && validDeviceIds.length === 1;
+  const deviceId = hasOneUnambiguousDeviceId
+    ? validDeviceIds[0]!
+    : crypto.randomUUID();
 
-  if (existingId && UUID_REGEX.test(existingId)) {
-    return NextResponse.next();
-  }
-
-  const deviceId = crypto.randomUUID();
-
-  // Forward cookie to current request headers so Server Components on the first render see it
-  request.cookies.set(DEVICE_COOKIE_NAME, deviceId);
+  // Pass the resolved identity to the application on the same request. This
+  // avoids a shared fallback during the first request before the cookie exists.
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-clause-device-id", deviceId);
   const response = NextResponse.next({
     request: {
-      headers: request.headers,
+      headers: requestHeaders,
     },
   });
 
-  // Set persistent cookie on the response for the browser
-  response.cookies.set({
-    name: DEVICE_COOKIE_NAME,
-    value: deviceId,
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 365 * 2, // 2 years
-  });
+  if (!hasOneUnambiguousDeviceId) {
+    response.cookies.set({
+      name: DEVICE_COOKIE_NAME,
+      value: deviceId,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365 * 2, // 2 years
+    });
+  }
+
+  // Dashboard, workspace, and API responses contain device-owned data.
+  // Prevent an intermediate cache from serving one device's list to another.
+  const pathname = request.nextUrl.pathname;
+  if (
+    pathname.startsWith("/api/") ||
+    pathname === "/dashboard" ||
+    pathname.startsWith("/documents/")
+  ) {
+    response.headers.set("Cache-Control", "private, no-store, max-age=0");
+    response.headers.set("Vary", "Cookie");
+  }
 
   return response;
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
     "/((?!_next/static|_next/image|favicon.ico).*)",
   ],
 };
